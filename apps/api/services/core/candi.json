@@ -1,0 +1,40 @@
+{
+     "GoVersion": "1.26",
+     "Version": "v1.20.0",
+     "ServiceName": "core",
+     "PackagePrefix": "monorepo/services/core",
+     "ProtoSource": "monorepo/sdk/core/proto",
+     "Owner": "",
+     "License": "",
+     "Year": 2026,
+     "IsMonorepo": true,
+     "RestHandler": true,
+     "GRPCHandler": false,
+     "GraphQLHandler": false,
+     "FiberRestHandler": false,
+     "KafkaHandler": false,
+     "SchedulerHandler": false,
+     "RedisSubsHandler": false,
+     "TaskQueueHandler": false,
+     "PostgresListenerHandler": false,
+     "RabbitMQHandler": false,
+     "IsWorkerActive": false,
+     "RedisDeps": true,
+     "SQLDeps": true,
+     "MongoDeps": false,
+     "SQLUseGORM": true,
+     "ArangoDeps": false,
+     "SQLDriver": "postgres",
+     "WorkerPlugins": null,
+     "Modules": [
+          {
+               "ModuleName": "claim"
+          },
+          {
+               "ModuleName": "officer"
+          },
+          {
+               "ModuleName": "policy"
+          }
+     ]
+}
