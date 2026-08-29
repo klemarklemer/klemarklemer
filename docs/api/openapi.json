@@ -1,0 +1,720 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Taskmaster Claims Operations Core API",
+    "version": "1.0.0",
+    "description": "Production-grade Agentic Claims Operations & SLA Platform REST API.\nDesigned for the *All Things Agentic Hackathon — The Taskmaster* (August 2026).\nAdheres strictly to the insurance operations domain glossary in `CONTEXT.md`.\n"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Local Core Service"
+    },
+    {
+      "url": "https://api.klemarklemer.internal",
+      "description": "Production Environment"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Claims",
+      "description": "Claims lifecycle operations, autonomous agent evaluations, and human approval decisions."
+    },
+    {
+      "name": "Demo",
+      "description": "Development and testing utilities for scenario resets."
+    }
+  ],
+  "paths": {
+    "/v1/claim": {
+      "get": {
+        "tags": [
+          "Claims"
+        ],
+        "summary": "List all claims",
+        "description": "Retrieve a paginated list of claims with optional stage, status, or keyword filtering.",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "name": "stage",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "INTAKE",
+                "DOCUMENT_VERIFICATION",
+                "ASSIGNMENT",
+                "ASSESSMENT",
+                "DECISION",
+                "CLOSED"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "OPEN",
+                "CLOSED"
+              ]
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of claims returned successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimListResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Claims"
+        ],
+        "summary": "Create a new claim",
+        "description": "Ingests a new claim and initializes the intake stage and SLA clocks.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateClaimRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Claim created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimDetailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error."
+          }
+        }
+      }
+    },
+    "/v1/claim/{id}": {
+      "get": {
+        "tags": [
+          "Claims"
+        ],
+        "summary": "Get claim details",
+        "description": "Fetch complete claim entity with all preloaded documents, timeline events, officer assignment, and assessment recommendation.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Claim details retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimDetailResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Claim not found."
+          }
+        }
+      }
+    },
+    "/v1/claim/{id}/documents": {
+      "post": {
+        "tags": [
+          "Claims"
+        ],
+        "summary": "Upload claim document",
+        "description": "Uploads a required document artifact (e.g. Police Report) and autonomously triggers Intake evaluation and downstream agent progression.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadDocumentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Document verified and intake evaluated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimDetailResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/claim/{id}/intake": {
+      "post": {
+        "tags": [
+          "Claims"
+        ],
+        "summary": "Trigger intake evaluation",
+        "description": "Runs the Intake Agent evaluation to verify document completeness and classify severity.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Intake evaluated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimDetailResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/claim/{id}/assignment": {
+      "post": {
+        "tags": [
+          "Claims"
+        ],
+        "summary": "Trigger officer assignment",
+        "description": "Executes deterministic scoring to bind the optimal claims officer based on current workload and skill rating.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Officer assigned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimDetailResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/claim/{id}/assessment": {
+      "post": {
+        "tags": [
+          "Claims"
+        ],
+        "summary": "Trigger assessment recommendation",
+        "description": "Synthesizes policy coverage limits against loss evidence to produce an explainable recommendation.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Assessment recommendation generated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimDetailResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/claim/{id}/approval": {
+      "post": {
+        "tags": [
+          "Claims"
+        ],
+        "summary": "Submit human approval (Binding Decision)",
+        "description": "Records human claims officer approval or rejection. Approving creates a binding Decision and closes the claim.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HumanApprovalRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Human approval decision recorded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimDetailResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/demo/reset": {
+      "post": {
+        "tags": [
+          "Demo"
+        ],
+        "summary": "Reset demo environment",
+        "description": "Restores CLM-2026-0042 and claims officer workloads to initial demo state.",
+        "responses": {
+          "200": {
+            "description": "Demo state reset.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimDetailResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreateClaimRequest": {
+        "type": "object",
+        "required": [
+          "policy_id",
+          "claim_type",
+          "incident_description",
+          "estimated_loss"
+        ],
+        "properties": {
+          "policy_id": {
+            "type": "integer",
+            "example": 1
+          },
+          "claim_type": {
+            "type": "string",
+            "example": "MOTOR"
+          },
+          "incident_description": {
+            "type": "string",
+            "example": "Collision with road barrier during heavy rain on highway KM 42."
+          },
+          "estimated_loss": {
+            "type": "number",
+            "format": "double",
+            "example": 4200
+          }
+        }
+      },
+      "UploadDocumentRequest": {
+        "type": "object",
+        "properties": {
+          "document_type": {
+            "type": "string",
+            "example": "POLICE_REPORT"
+          },
+          "file_name": {
+            "type": "string",
+            "example": "police_report_km42.pdf"
+          },
+          "file_url": {
+            "type": "string",
+            "example": "https://storage.googleapis.com/klemarklemer-claims-docs/claims/CLM-2026-0042/police_report_km42.pdf"
+          }
+        }
+      },
+      "HumanApprovalRequest": {
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "officer_id": {
+            "type": "integer",
+            "example": 1
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "APPROVE",
+              "REJECT"
+            ],
+            "example": "APPROVE"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Verified police report and damage photos match collision claim."
+          }
+        }
+      },
+      "ClaimDetailResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "example": "Success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Claim"
+          }
+        }
+      },
+      "ClaimListResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "example": "Success"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMeta"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Claim"
+            }
+          }
+        }
+      },
+      "PaginationMeta": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "limit": {
+            "type": "integer",
+            "example": 10
+          },
+          "totalRecords": {
+            "type": "integer",
+            "example": 1
+          },
+          "totalPages": {
+            "type": "integer",
+            "example": 1
+          }
+        }
+      },
+      "Claim": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "claim_number": {
+            "type": "string",
+            "example": "CLM-2026-0042"
+          },
+          "policy_id": {
+            "type": "integer",
+            "example": 1
+          },
+          "stage": {
+            "type": "string",
+            "enum": [
+              "INTAKE",
+              "DOCUMENT_VERIFICATION",
+              "ASSIGNMENT",
+              "ASSESSMENT",
+              "DECISION",
+              "CLOSED"
+            ],
+            "example": "DOCUMENT_VERIFICATION"
+          },
+          "document_completeness": {
+            "type": "string",
+            "enum": [
+              "COMPLETE",
+              "INCOMPLETE"
+            ],
+            "example": "INCOMPLETE"
+          },
+          "survey_required": {
+            "type": "boolean",
+            "example": false
+          },
+          "claim_type": {
+            "type": "string",
+            "example": "MOTOR"
+          },
+          "severity": {
+            "type": "string",
+            "example": "MEDIUM"
+          },
+          "incident_description": {
+            "type": "string",
+            "example": "Front bumper collision with road barrier during heavy rain on highway KM 42."
+          },
+          "estimated_loss": {
+            "type": "number",
+            "example": 4200
+          },
+          "approved_amount": {
+            "type": "number",
+            "example": 0
+          },
+          "current_officer_id": {
+            "type": "integer",
+            "nullable": true,
+            "example": 1
+          },
+          "status": {
+            "type": "string",
+            "example": "OPEN"
+          },
+          "claim_sla_due_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "stage_sla_due_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClaimDocument"
+            }
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClaimEvent"
+            }
+          },
+          "assignment": {
+            "$ref": "#/components/schemas/Assignment"
+          },
+          "recommendation": {
+            "$ref": "#/components/schemas/AssessmentRecommendation"
+          }
+        }
+      },
+      "ClaimDocument": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "claim_id": {
+            "type": "integer"
+          },
+          "document_type": {
+            "type": "string"
+          },
+          "file_name": {
+            "type": "string"
+          },
+          "file_url": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "extracted_data": {
+            "type": "string"
+          }
+        }
+      },
+      "ClaimEvent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "claim_id": {
+            "type": "integer"
+          },
+          "actor_name": {
+            "type": "string"
+          },
+          "actor_type": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "previous_stage": {
+            "type": "string"
+          },
+          "new_stage": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Assignment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "claim_id": {
+            "type": "integer"
+          },
+          "officer_id": {
+            "type": "integer"
+          },
+          "workload_score": {
+            "type": "number"
+          },
+          "skill_score": {
+            "type": "number"
+          },
+          "total_score": {
+            "type": "number"
+          },
+          "assigned_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AssessmentRecommendation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "claim_id": {
+            "type": "integer"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "APPROVE",
+              "REJECT",
+              "MANUAL_REVIEW"
+            ]
+          },
+          "confidence": {
+            "type": "number"
+          },
+          "reasons": {
+            "type": "string"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}
