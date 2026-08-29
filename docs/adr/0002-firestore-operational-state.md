@@ -2,7 +2,7 @@
 
 The Claim is a long-lived operational record with an append-only timeline. Firestore matches the vision (document per Claim, subcollections or sibling `claim_events`), stays cheap at hackathon scale, and is a listed Google Cloud infrastructure service for submission rules. Cloud Storage holds blobs; Firestore holds metadata and object refs.
 
-**Status:** accepted
+**Status:** superseded by [ADR 0004](./0004-postgres-candi-state.md)
 
 ## Considered Options
 
