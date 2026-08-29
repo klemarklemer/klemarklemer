@@ -11,8 +11,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect Changed Paths
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      web: ${{ steps.filter.outputs.web }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Filter Changed Paths
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'apps/api/**'
+              - '.github/workflows/ci.yml'
+              - '.github/workflows/cd.yml'
+              - 'Makefile'
+            web:
+              - 'apps/web/**'
+              - '.github/workflows/ci.yml'
+              - '.github/workflows/cd.yml'
+              - 'Makefile'
+
   security:
     name: DevSecOps & Security SAST
+    needs: [changes]
+    if: ${{ needs.changes.outputs.api == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -40,8 +68,9 @@ jobs:
 
   api:
     name: Backend API (Go)
+    needs: [changes, security]
+    if: ${{ needs.changes.outputs.api == 'true' }}
     runs-on: ubuntu-latest
-    needs: [security]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -64,6 +93,8 @@ jobs:
 
   web:
     name: Frontend Web (React / Vite)
+    needs: [changes]
+    if: ${{ needs.changes.outputs.web == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
