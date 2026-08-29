@@ -1,0 +1,83 @@
+name: CD
+
+on:
+  push:
+    tags:
+      - 'production-api-core-v*'
+      - 'staging-api-core-v*'
+      - 'development-api-core-v*'
+      - 'production-web-v*'
+      - 'staging-web-v*'
+      - 'development-web-v*'
+  workflow_dispatch:
+
+jobs:
+  deploy-api:
+    name: Deploy Backend API to Cloud Run
+    if: startsWith(github.ref, 'refs/tags/production-api-core-') || startsWith(github.ref, 'refs/tags/staging-api-core-') || startsWith(github.ref, 'refs/tags/development-api-core-') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract Environment & Version
+        id: meta
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          if [[ $TAG =~ ^production- ]]; then
+            echo "env=production" >> $GITHUB_OUTPUT
+          elif [[ $TAG =~ ^staging- ]]; then
+            echo "env=staging" >> $GITHUB_OUTPUT
+          else
+            echo "env=development" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Authenticate to Google Cloud
+        if: env.GCP_CREDENTIALS != ''
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        if: env.GCP_CREDENTIALS != ''
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build & Push API Image
+        if: env.GCP_CREDENTIALS != ''
+        run: |
+          gcloud auth configure-docker --quiet
+          IMAGE_TAG="gcr.io/${{ secrets.GCP_PROJECT_ID }}/klemarklemer-api:${{ steps.meta.outputs.tag }}"
+          docker build --build-arg SERVICE_NAME=core -t $IMAGE_TAG -f apps/api/Dockerfile apps/api
+          docker push $IMAGE_TAG
+
+      - name: Deploy to Cloud Run
+        if: env.GCP_CREDENTIALS != ''
+        run: |
+          IMAGE_TAG="gcr.io/${{ secrets.GCP_PROJECT_ID }}/klemarklemer-api:${{ steps.meta.outputs.tag }}"
+          gcloud run deploy klemarklemer-api-${{ steps.meta.outputs.env }} \
+            --image $IMAGE_TAG \
+            --platform managed \
+            --region ${{ secrets.GCP_REGION || 'asia-southeast1' }} \
+            --allow-unauthenticated
+
+  deploy-web:
+    name: Deploy Frontend Web Console
+    if: startsWith(github.ref, 'refs/tags/production-web-') || startsWith(github.ref, 'refs/tags/staging-web-') || startsWith(github.ref, 'refs/tags/development-web-') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install dependencies & build
+        working-directory: apps/web
+        run: |
+          npm ci
+          npm run build
