@@ -1,0 +1,11 @@
+vendor
+bin
+.env
+*.pem
+*.key
+.vscode/
+__debug_bin
+coverage.txt
+mocks/
+.DS_Store
+.scannerwork/
