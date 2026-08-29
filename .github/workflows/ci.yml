@@ -21,7 +21,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: 'stable'
           cache-dependency-path: apps/api/go.sum
 
       - name: Install govulncheck (Go Vulnerability Scanner)
@@ -49,7 +49,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: 'stable'
           cache-dependency-path: apps/api/go.sum
 
       - name: Verify Go build
