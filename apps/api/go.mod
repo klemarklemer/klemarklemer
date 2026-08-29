@@ -2,6 +2,8 @@ module monorepo
 
 go 1.26.0
 
+toolchain go1.26.7
+
 require (
 	github.com/golangid/candi v1.20.0
 	github.com/lib/pq v1.12.3
