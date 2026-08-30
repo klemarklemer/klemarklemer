@@ -35,6 +35,8 @@ const (
 // reasoning path produced a recommendation.
 const (
 	SourceDeterministic = "deterministic-rules"
+	BackendVertexAI     = "vertex-ai"
+	BackendGeminiAPI    = "gemini-api"
 )
 
 const (
@@ -81,30 +83,67 @@ type Assessor interface {
 	Assess(ctx context.Context, in AssessmentInput) (AssessmentResult, error)
 }
 
-// New returns a Gemini-backed assessor when a credential is configured, and the
-// deterministic assessor otherwise. It never returns a nil Assessor, so callers
-// do not need a nil branch: an unconfigured deployment degrades rather than fails.
+// New returns a Gemini-backed assessor when the environment configures one, and
+// the deterministic assessor otherwise. It never returns a nil Assessor, so
+// callers need no nil branch: an unconfigured deployment degrades rather than fails.
+//
+// Two backends are supported, chosen by environment alone so the same binary runs
+// either way:
+//
+//	Vertex AI    GOOGLE_GENAI_USE_VERTEXAI=true, GOOGLE_CLOUD_PROJECT, and
+//	             GOOGLE_CLOUD_LOCATION, authenticating through application default
+//	             credentials. Calls appear in Google Cloud Console.
+//	Gemini API   GEMINI_API_KEY (or GOOGLE_API_KEY). Simplest for local work.
+//
+// The second return value names the engine actually selected, so startup logs and
+// the recorded claim event both say which one answered.
 func New(ctx context.Context) (Assessor, string) {
+	useVertex := vertexConfigured()
 	apiKey := firstNonEmpty(os.Getenv("GEMINI_API_KEY"), os.Getenv("GOOGLE_API_KEY"))
-	if apiKey == "" {
+
+	if !useVertex && apiKey == "" {
 		return deterministicAssessor{}, SourceDeterministic
 	}
 
-	client, err := genai.NewClient(ctx, &genai.ClientConfig{
-		APIKey:  apiKey,
-		Backend: genai.BackendGeminiAPI,
-	})
+	// An empty config lets the SDK resolve Vertex settings from the environment
+	// itself; setting Backend here would override that and pin the Gemini API.
+	cfg := &genai.ClientConfig{}
+	if !useVertex {
+		cfg.APIKey = apiKey
+		cfg.Backend = genai.BackendGeminiAPI
+	}
+
+	client, err := genai.NewClient(ctx, cfg)
 	if err != nil {
 		return deterministicAssessor{}, SourceDeterministic
 	}
 
 	model := firstNonEmpty(os.Getenv("GEMINI_MODEL"), defaultModel)
-	return &geminiAssessor{client: client, model: model}, model
+	return &geminiAssessor{client: client, model: model, backend: backendLabel(useVertex)}, model + " via " + backendLabel(useVertex)
+}
+
+// vertexConfigured reports whether the environment asks for Vertex AI. It mirrors
+// the SDK's own truthiness rule so this decision and the SDK's cannot disagree.
+func vertexConfigured() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("GOOGLE_GENAI_USE_VERTEXAI"))) {
+	case "1", "true":
+		return os.Getenv("GOOGLE_CLOUD_PROJECT") != ""
+	default:
+		return false
+	}
+}
+
+func backendLabel(useVertex bool) string {
+	if useVertex {
+		return BackendVertexAI
+	}
+	return BackendGeminiAPI
 }
 
 type geminiAssessor struct {
-	client *genai.Client
-	model  string
+	client  *genai.Client
+	model   string
+	backend string
 }
 
 const systemInstruction = `You are the Assessment Agent in an insurance claims operations platform.
@@ -161,7 +200,7 @@ func (a *geminiAssessor) Assess(ctx context.Context, in AssessmentInput) (Assess
 		Outcome:    outcome,
 		Confidence: clampConfidence(parsed.Confidence),
 		Reasons:    strings.TrimSpace(parsed.Reasons),
-		Source:     a.model,
+		Source:     a.model + " via " + a.backend,
 	}, nil
 }
 
