@@ -50,7 +50,7 @@ func (r *officerRepoSQL) FetchAll(ctx context.Context, filter *domain.FilterOffi
 		Column: clause.Column{Name: filter.OrderBy},
 		Desc:   strings.ToUpper(filter.Sort) == "DESC",
 	})
-	if filter.Limit > 0 || !filter.ShowAll {
+	if filter.Limit > 0 {
 		db = db.Limit(filter.Limit).Offset(filter.CalculateOffset())
 	}
 	err = db.Find(&data).Error

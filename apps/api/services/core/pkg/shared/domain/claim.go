@@ -48,6 +48,7 @@ type Claim struct {
 	IncidentDescription  string    `gorm:"column:incident_description;type:text" json:"incident_description"`
 	EstimatedLoss        float64   `gorm:"column:estimated_loss;type:decimal(15,2);not null;default:0" json:"estimated_loss"`
 	ApprovedAmount       float64   `gorm:"column:approved_amount;type:decimal(15,2);not null;default:0" json:"approved_amount"`
+	FraudSignal          *string    `gorm:"column:fraud_signal;type:varchar(512)" json:"fraud_signal,omitempty"`
 	CurrentOfficerID     *int      `gorm:"column:current_officer_id" json:"current_officer_id,omitempty"`
 	CurrentOfficer       *ClaimsOfficer `gorm:"foreignKey:CurrentOfficerID" json:"current_officer,omitempty"`
 	ClaimSLADueAt        *time.Time `gorm:"column:claim_sla_due_at" json:"claim_sla_due_at,omitempty"`
