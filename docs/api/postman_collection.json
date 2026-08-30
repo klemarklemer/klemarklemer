@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Taskmaster Claims Operations API",
-    "description": "Postman Collection for Taskmaster Claims Operations & SLA Platform (All Things Agentic Hackathon).",
+    "description": "Walk the requests top to bottom for a full claim lifecycle.\n\n1. Reset demo - restores claim CLM-2026-0042 to DOCUMENT_VERIFICATION with only a damage photo on file. Idempotent; run it as often as you like.\n2. Upload document (POLICE_REPORT) - completes the evidence and CHAINS Loops 1, 2 and 3 in one request. The response already contains the assigned officer and the Gemini recommendation, and stage is DECISION.\n3. Submit approval - Loop 4. A human binds the decision; the claim closes and approved_amount is estimated_loss minus the policy deductible.\n\nIntake, assignment and assessment are also exposed individually for stepping through the loops one at a time.\n\nNotes for clients: claim detail preloads the full policy and current_officer objects, so no second call is needed. recommendation.outcome is APPROVE, REJECT or MANUAL_REVIEW and is advisory - only the approval endpoint settles a claim. The RECOMMENDATION_GENERATED event payload carries an engine field naming the reasoning backend that answered.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -29,8 +29,14 @@
         ],
         "url": {
           "raw": "{{baseUrl}}/v1/demo/reset",
-          "host": ["{{baseUrl}}"],
-          "path": ["v1", "demo", "reset"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "demo",
+            "reset"
+          ]
         },
         "description": "Resets the demo environment and CLM-2026-0042 state to incomplete intake."
       }
@@ -42,8 +48,13 @@
         "header": [],
         "url": {
           "raw": "{{baseUrl}}/v1/claim?page=1&limit=10",
-          "host": ["{{baseUrl}}"],
-          "path": ["v1", "claim"],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "claim"
+          ],
           "query": [
             {
               "key": "page",
@@ -65,8 +76,14 @@
         "header": [],
         "url": {
           "raw": "{{baseUrl}}/v1/claim/{{claimId}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["v1", "claim", "{{claimId}}"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "claim",
+            "{{claimId}}"
+          ]
         },
         "description": "Fetches full claim detail with documents, events, assignment, and recommendation."
       }
@@ -87,10 +104,74 @@
         },
         "url": {
           "raw": "{{baseUrl}}/v1/claim/{{claimId}}/documents",
-          "host": ["{{baseUrl}}"],
-          "path": ["v1", "claim", "{{claimId}}", "documents"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "claim",
+            "{{claimId}}",
+            "documents"
+          ]
         },
         "description": "Uploads missing police report and automatically cascades through Intake -> Assignment -> Assessment stages."
+      }
+    },
+    {
+      "name": "Manual Trigger - Evaluate Intake",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/claim/{{claimId}}/intake",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "claim",
+            "{{claimId}}",
+            "intake"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Manual Trigger - Run Assignment",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/claim/{{claimId}}/assignment",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "claim",
+            "{{claimId}}",
+            "assignment"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Manual Trigger - Run Assessment",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/claim/{{claimId}}/assessment",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "claim",
+            "{{claimId}}",
+            "assessment"
+          ]
+        }
       }
     },
     {
@@ -109,46 +190,17 @@
         },
         "url": {
           "raw": "{{baseUrl}}/v1/claim/{{claimId}}/approval",
-          "host": ["{{baseUrl}}"],
-          "path": ["v1", "claim", "{{claimId}}", "approval"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "claim",
+            "{{claimId}}",
+            "approval"
+          ]
         },
         "description": "Mandatory Human-in-the-Loop approval that creates the binding Decision and closes the claim."
-      }
-    },
-    {
-      "name": "Manual Trigger - Evaluate Intake",
-      "request": {
-        "method": "POST",
-        "header": [],
-        "url": {
-          "raw": "{{baseUrl}}/v1/claim/{{claimId}}/intake",
-          "host": ["{{baseUrl}}"],
-          "path": ["v1", "claim", "{{claimId}}", "intake"]
-        }
-      }
-    },
-    {
-      "name": "Manual Trigger - Run Assignment",
-      "request": {
-        "method": "POST",
-        "header": [],
-        "url": {
-          "raw": "{{baseUrl}}/v1/claim/{{claimId}}/assignment",
-          "host": ["{{baseUrl}}"],
-          "path": ["v1", "claim", "{{claimId}}", "assignment"]
-        }
-      }
-    },
-    {
-      "name": "Manual Trigger - Run Assessment",
-      "request": {
-        "method": "POST",
-        "header": [],
-        "url": {
-          "raw": "{{baseUrl}}/v1/claim/{{claimId}}/assessment",
-          "host": ["{{baseUrl}}"],
-          "path": ["v1", "claim", "{{claimId}}", "assessment"]
-        }
       }
     }
   ]

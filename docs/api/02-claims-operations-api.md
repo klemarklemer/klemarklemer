@@ -106,3 +106,36 @@ curl -X POST "http://localhost:8000/v1/claim/1/approval" \
   -H "Content-Type: application/json" \
   -d '{"officer_id":1,"action":"APPROVE","notes":"Approved after police report verification."}'
 ```
+
+## Notes for client developers
+
+These are the details most likely to cost you a wasted round trip or a wrong assumption.
+
+**Claim detail already contains the objects you need.** `GET /v1/claim/{id}` preloads
+`policy`, `current_officer`, `documents`, `events`, `assignment` and `recommendation`.
+Render straight from one response; there is no need to resolve `policy_id` or
+`current_officer_id` yourself.
+
+**Uploading a document runs three loops.** `POST /v1/claim/{id}/documents` completes
+intake, assigns an officer and produces the assessment before it returns. Expect the
+response to come back with `stage: "DECISION"`, a populated `current_officer`, and a
+`recommendation` — not the `DOCUMENT_VERIFICATION` state you posted against. The
+individual loop endpoints exist for stepping through the stages one at a time.
+
+**A recommendation is not a decision.** `recommendation.outcome` is `APPROVE`, `REJECT`
+or `MANUAL_REVIEW`, and `confidence` runs 0.0–1.0. Nothing is settled until
+`POST /v1/claim/{id}/approval` records a human decision; only then do `status` become
+`CLOSED` and `approved_amount` become `estimated_loss` minus the policy deductible.
+Treat `MANUAL_REVIEW` as a first-class outcome in the UI — it is the agent's honest
+answer when the rules disagree, not an error.
+
+**Every recommendation names the engine that produced it.** The
+`RECOMMENDATION_GENERATED` event's `payload` is a JSON string carrying `outcome`,
+`confidence`, `reasons` and `engine`. `engine` reads `gemini-3.5-flash via vertex-ai`
+when a model answered, or `deterministic-rules` when the service is running without a
+model credential and fell back to local underwriting rules. Surfacing it is useful:
+it tells an operator whether they are looking at model reasoning or the fallback.
+
+**Errors use the same envelope as success.** Check `success`, not the presence of
+`data`. A failed loop returns HTTP 400 with a `message` naming the cause, for example
+`no claims officers exist to assign claim 1`.
