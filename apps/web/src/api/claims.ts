@@ -8,6 +8,7 @@ import type {
   Recommendation,
   SlaClock,
   Stage,
+  SurveyInfo,
 } from '../types';
 
 export interface BackendDocument {
@@ -36,6 +37,15 @@ export interface BackendAssignment {
   total_score: number;
 }
 
+export interface BackendSurvey {
+  surveyor_id?: number | null;
+  survey_status?: string | null;
+  survey_sla_due_at?: string | null;
+  survey_completed_at?: string | null;
+  survey_report_url?: string | null;
+  survey_photos?: string[];
+}
+
 export interface BackendRecommendation {
   outcome: string;
   confidence: number;
@@ -59,6 +69,12 @@ export interface BackendClaim {
   policy_id: number;
   stage: string;
   document_completeness: string;
+  survey_required: boolean;
+  surveyor_id?: number | null;
+  survey_status?: string | null;
+  survey_sla_due_at?: string | null;
+  survey_completed_at?: string | null;
+  survey_report_url?: string | null;
   claim_type: string;
   status: string;
   documents?: BackendDocument[];
@@ -118,6 +134,7 @@ const STAGE_MAP: Record<string, Stage> = {
   INTAKE: 'Intake',
   DOCUMENT_VERIFICATION: 'Intake',
   ASSIGNMENT: 'Assignment',
+  SURVEY: 'Survey',
   ASSESSMENT: 'Assessment',
   DECISION: 'Decision',
   CLOSED: 'Closed',
@@ -173,6 +190,16 @@ export function toClaimView(b: BackendClaim): Claim {
         ],
       }
     : null;
+
+  const survey: SurveyInfo | null = b.survey_required
+    ? {
+        required: true,
+        status: b.survey_status || undefined,
+        surveyorId: b.surveyor_id || undefined,
+        completedAt: b.survey_completed_at || undefined,
+        reportUrl: b.survey_report_url || undefined,
+      }
+    : { required: false };
 
   const recommendation: Recommendation | null = b.recommendation
     ? {
@@ -235,6 +262,7 @@ export function toClaimView(b: BackendClaim): Claim {
     documents,
     policy,
     assignment,
+    survey,
     recommendation,
     fraudSignal: b.fraud_signal || undefined,
     decision,

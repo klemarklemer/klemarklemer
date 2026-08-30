@@ -9,9 +9,19 @@ const (
 	StageIntake               = "INTAKE"
 	StageDocumentVerification = "DOCUMENT_VERIFICATION"
 	StageAssignment           = "ASSIGNMENT"
+	StageSurvey               = "SURVEY"
 	StageAssessment           = "ASSESSMENT"
 	StageDecision             = "DECISION"
 	StageClosed               = "CLOSED"
+)
+
+// Survey status constants
+const (
+	SurveyStatusPending    = "PENDING"
+	SurveyStatusAssigned   = "ASSIGNED"
+	SurveyStatusInProgress = "IN_PROGRESS"
+	SurveyStatusCompleted  = "COMPLETED"
+	SurveyStatusOverdue    = "OVERDUE"
 )
 
 // Document completeness constants
@@ -43,6 +53,13 @@ type Claim struct {
 	Stage                string    `gorm:"column:stage;type:varchar(64);not null;default:'INTAKE'" json:"stage"`
 	DocumentCompleteness string    `gorm:"column:document_completeness;type:varchar(32);not null;default:'INCOMPLETE'" json:"document_completeness"`
 	SurveyRequired       bool      `gorm:"column:survey_required;not null;default:false" json:"survey_required"`
+	SurveyorID           *int      `gorm:"column:surveyor_id" json:"surveyor_id,omitempty"`
+	Surveyor             *ClaimsOfficer `gorm:"foreignKey:SurveyorID" json:"surveyor,omitempty"`
+	SurveyStatus         string    `gorm:"column:survey_status;type:varchar(32)" json:"survey_status,omitempty"`
+	SurveySLADueAt       *time.Time `gorm:"column:survey_sla_due_at" json:"survey_sla_due_at,omitempty"`
+	SurveyCompletedAt    *time.Time `gorm:"column:survey_completed_at" json:"survey_completed_at,omitempty"`
+	SurveyReportURL      string    `gorm:"column:survey_report_url;type:text" json:"survey_report_url,omitempty"`
+	SurveyPhotos         []string  `gorm:"column:survey_photos;type:text[]" json:"survey_photos,omitempty"`
 	ClaimType            string    `gorm:"column:claim_type;type:varchar(64);not null;default:'MOTOR'" json:"claim_type"`
 	Severity             string    `gorm:"column:severity;type:varchar(32);not null;default:'MEDIUM'" json:"severity"`
 	IncidentDescription  string    `gorm:"column:incident_description;type:text" json:"incident_description"`

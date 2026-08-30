@@ -27,6 +27,14 @@ type RequestHumanApproval struct {
 	Notes     string `json:"notes"`
 }
 
+// RequestCompleteSurvey model
+type RequestCompleteSurvey struct {
+	SurveyorID     int      `json:"surveyor_id"`
+	ReportURL      string   `json:"report_url"`
+	Photos         []string `json:"photos"`
+	Notes          string   `json:"notes"`
+}
+
 // RequestClaim placeholder for candi compatibility
 type RequestClaim struct {
 	ID                  int     `json:"id"`
