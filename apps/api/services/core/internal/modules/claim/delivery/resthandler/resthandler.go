@@ -44,6 +44,11 @@ func (h *RestHandler) Mount(root interfaces.RESTRouter) {
 	v1Claim.POST("/:id/assessment", h.runAssessment)
 	v1Claim.POST("/:id/approval", h.submitHumanApproval)
 
+	// Survey routes
+	v1Claim.POST("/:id/survey/assign", h.assignSurveyor)
+	v1Claim.POST("/:id/survey/status", h.updateSurveyStatus)
+	v1Claim.POST("/:id/survey/complete", h.completeSurvey)
+
 	// Demo utility route
 	root.Group(candihelper.V1 + "/demo").POST("/reset", h.resetDemo)
 }
@@ -186,6 +191,76 @@ func (h *RestHandler) submitHumanApproval(rw http.ResponseWriter, req *http.Requ
 	}
 
 	wrapper.NewHTTPResponse(http.StatusOK, "Human approval processed successfully", res).JSON(rw)
+}
+
+func (h *RestHandler) assignSurveyor(rw http.ResponseWriter, req *http.Request) {
+	trace, ctx := tracer.StartTraceWithContext(req.Context(), "ClaimDeliveryREST:AssignSurveyor")
+	defer trace.Finish()
+
+	id, _ := strconv.Atoi(restserver.URLParam(req, "id"))
+	body, _ := io.ReadAll(req.Body)
+
+	var payload struct {
+		SurveyorID int `json:"surveyor_id"`
+	}
+	if err := json.Unmarshal(body, &payload); err != nil {
+		wrapper.NewHTTPResponse(http.StatusBadRequest, err.Error()).JSON(rw)
+		return
+	}
+
+	res, err := h.uc.Claim().AssignSurveyor(ctx, id, payload.SurveyorID)
+	if err != nil {
+		wrapper.NewHTTPResponse(http.StatusBadRequest, err.Error()).JSON(rw)
+		return
+	}
+
+	wrapper.NewHTTPResponse(http.StatusOK, "Surveyor assigned successfully", res).JSON(rw)
+}
+
+func (h *RestHandler) updateSurveyStatus(rw http.ResponseWriter, req *http.Request) {
+	trace, ctx := tracer.StartTraceWithContext(req.Context(), "ClaimDeliveryREST:UpdateSurveyStatus")
+	defer trace.Finish()
+
+	id, _ := strconv.Atoi(restserver.URLParam(req, "id"))
+	body, _ := io.ReadAll(req.Body)
+
+	var payload struct {
+		Status string `json:"status"`
+	}
+	if err := json.Unmarshal(body, &payload); err != nil {
+		wrapper.NewHTTPResponse(http.StatusBadRequest, err.Error()).JSON(rw)
+		return
+	}
+
+	res, err := h.uc.Claim().UpdateSurveyStatus(ctx, id, payload.Status)
+	if err != nil {
+		wrapper.NewHTTPResponse(http.StatusBadRequest, err.Error()).JSON(rw)
+		return
+	}
+
+	wrapper.NewHTTPResponse(http.StatusOK, "Survey status updated", res).JSON(rw)
+}
+
+func (h *RestHandler) completeSurvey(rw http.ResponseWriter, req *http.Request) {
+	trace, ctx := tracer.StartTraceWithContext(req.Context(), "ClaimDeliveryREST:CompleteSurvey")
+	defer trace.Finish()
+
+	id, _ := strconv.Atoi(restserver.URLParam(req, "id"))
+	body, _ := io.ReadAll(req.Body)
+
+	var payload domain.RequestCompleteSurvey
+	if err := json.Unmarshal(body, &payload); err != nil {
+		wrapper.NewHTTPResponse(http.StatusBadRequest, err.Error()).JSON(rw)
+		return
+	}
+
+	res, err := h.uc.Claim().CompleteSurvey(ctx, id, &payload)
+	if err != nil {
+		wrapper.NewHTTPResponse(http.StatusBadRequest, err.Error()).JSON(rw)
+		return
+	}
+
+	wrapper.NewHTTPResponse(http.StatusOK, "Survey completed and assessment triggered", res).JSON(rw)
 }
 
 func (h *RestHandler) resetDemo(rw http.ResponseWriter, req *http.Request) {

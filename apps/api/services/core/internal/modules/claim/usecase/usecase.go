@@ -24,6 +24,11 @@ type ClaimUsecase interface {
 	SubmitHumanApproval(ctx context.Context, claimID int, data *domain.RequestHumanApproval) (res domain.ResponseClaim, err error)
 	ResetDemo(ctx context.Context) (res domain.ResponseClaim, err error)
 
+	// Survey operations
+	AssignSurveyor(ctx context.Context, claimID int, surveyorID int) (res domain.ResponseClaim, err error)
+	UpdateSurveyStatus(ctx context.Context, claimID int, status string) (res domain.ResponseClaim, err error)
+	CompleteSurvey(ctx context.Context, claimID int, data *domain.RequestCompleteSurvey) (res domain.ResponseClaim, err error)
+
 	UpdateClaim(ctx context.Context, data *domain.RequestClaim) (err error)
 	DeleteClaim(ctx context.Context, id int) (err error)
 }
