@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Taskmaster Claims Operations — Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.4/dist/index.global.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  :root { --ink:#18181b; --muted:#52525b; --line:#d4d4d8; --bg:#f4f4f5; --card:#ffffff; --accent:#0f766e; }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink:#e4e4e7; --muted:#a1a1aa; --line:#3f3f46; --bg:#18181b; --card:#27272a; --accent:#5eead4; }
+  }
+  body { font-family:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif; background:var(--bg); color:var(--ink); margin:0; }
+  code, .mono { font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,monospace; }
+  .wrap { max-width:1080px; margin:0 auto; padding:2.5rem 1.25rem 4rem; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; }
+  .mermaid { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1.25rem; overflow-x:auto; }
+  .mermaid svg { max-width:100%; height:auto; }
+  h1 { font-size:1.75rem; font-weight:600; letter-spacing:-.02em; margin:0 0 .35rem; }
+  h2 { font-size:1.15rem; font-weight:600; margin:2.75rem 0 .4rem; }
+  .lede { color:var(--muted); margin:0 0 .25rem; }
+  .q { color:var(--accent); font-weight:500; margin:.15rem 0 .9rem; }
+  .note { color:var(--muted); font-size:.875rem; line-height:1.6; }
+  .pill { display:inline-block; border:1px solid var(--line); border-radius:999px; padding:.1rem .55rem; font-size:.75rem; color:var(--muted); }
+  table { width:100%; border-collapse:collapse; font-size:.875rem; }
+  th, td { text-align:left; padding:.55rem .7rem; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--muted); font-weight:500; }
+  td.mono, th.mono { font-family:"IBM Plex Mono",monospace; font-size:.8rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Taskmaster Claims Operations</h1>
+  <p class="lede">Agentic claims operations &amp; SLA platform — <span class="mono">klemarklemer/klemarklemer</span></p>
+  <p class="note" style="margin-top:.6rem">
+    Four autonomous loops take a motor claim from intake to a settlement recommendation.
+    The loop that costs money stops at a human.
+  </p>
+
+  <h2>System topology</h2>
+  <p class="q">What runs where, and how does Gemini reach the claim record?</p>
+  <div class="mermaid">
+flowchart TB
+    subgraph client["Client"]
+      WEB["Claims officer console<br /><small>React + Vite · apps/web</small>"]
+    end
+
+    subgraph gcp["Google Cloud · project klemarklemer"]
+      VERTEX["Vertex AI<br /><b>Gemini 3.5 Flash</b><br /><small>GenAI SDK · ADC</small>"]
+    end
+
+    subgraph svc["Core service · apps/api/services/core"]
+      REST["REST delivery<br /><small>Echo · /v1</small>"]
+      UC["Claim usecases<br /><small>the four loops</small>"]
+      ASSESS["Assessor interface<br /><small>pkg/shared/gemini</small>"]
+      REPO["Repository<br /><small>GORM</small>"]
+    end
+
+    PG[("PostgreSQL 16<br /><small>claims · policies · officers<br />documents · events</small>")]
+    RD[("Redis 7<br /><small>locks</small>")]
+
+    WEB -. "not yet wired" .-> REST
+    REST --> UC
+    UC --> ASSESS
+    UC --> REPO
+    ASSESS -->|"grounded prompt"| VERTEX
+    VERTEX -->|"outcome · confidence · reasons"| ASSESS
+    REPO --> PG
+    UC --> RD
+
+    classDef gap stroke-dasharray: 5 5;
+    class WEB gap;
+  </div>
+  <p class="note" style="margin-top:.6rem">
+    The console is currently a design prototype with local fixture data — it makes no HTTP calls
+    (<span class="mono">apps/web/src/data/claim.ts</span>). Every other edge above is exercised end to end.
+  </p>
+
+  <h2>The four loops</h2>
+  <p class="q">Where does the agent decide, and where must a human?</p>
+  <div class="mermaid">
+flowchart TB
+    START(["Claim created<br /><small>stage: INTAKE</small>"])
+
+    L1["<b>Loop 1 · Intake Agent</b><br />verify document completeness<br />classify the claim"]
+    INC{"police report<br />and damage photo<br />on file?"}
+    WAIT["stage: DOCUMENT_VERIFICATION<br /><small>waits for evidence</small>"]
+
+    L2["<b>Loop 2 · Assignment Agent</b><br />score every officer on<br />workload and skill"]
+    L3["<b>Loop 3 · Assessment Agent</b><br />weigh cover against loss<br />and evidence — <i>Gemini</i>"]
+
+    REC{"recommendation"}
+    APPROVE["APPROVE"]
+    REVIEW["MANUAL_REVIEW"]
+    REJECT["REJECT"]
+
+    L4["<b>Loop 4 · Decision gate</b><br /><b>HUMAN</b> binds the decision"]
+    CLOSED(["stage: CLOSED<br /><small>settlement = loss − deductible</small>"])
+
+    START --> L1 --> INC
+    INC -->|no| WAIT
+    WAIT -.->|"document uploaded"| L1
+    INC -->|yes| L2 --> L3 --> REC
+    REC --> APPROVE
+    REC --> REVIEW
+    REC --> REJECT
+    APPROVE --> L4
+    REVIEW --> L4
+    REJECT --> L4
+    L4 --> CLOSED
+
+    classDef human stroke-width:3px;
+    class L4,CLOSED human;
+  </div>
+  <p class="note" style="margin-top:.6rem">
+    Loops 1–3 chain autonomously in a single request. A recommendation is advisory: nothing
+    settles or closes until <span class="mono">POST /v1/claim/{id}/approval</span> records a human decision.
+  </p>
+
+  <h2>One request, three loops</h2>
+  <p class="q">What actually happens when the last document arrives?</p>
+  <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant O as Claims officer
+    participant A as Core API
+    participant D as PostgreSQL
+    participant G as Gemini · Vertex AI
+
+    O->>A: POST /v1/claim/1/documents
+    A->>D: store document + event
+    A->>D: load claim, policy, documents
+    Note over A: Loop 1 — evidence complete
+    A->>D: load all officers
+    Note over A: Loop 2 — score, assign, commit
+    A->>G: policy limit, deductible, loss, documents
+    G-->>A: outcome, confidence, reasons
+    A->>D: store recommendation + event
+    A-->>O: stage DECISION, officer, recommendation
+    Note over O,A: claim now waits on a human
+  </div>
+
+  <h2>Verified behaviour</h2>
+  <p class="q">Does the recommendation follow the record, or a script?</p>
+  <div class="card" style="padding:.35rem 1rem 1rem; overflow-x:auto">
+    <table>
+      <thead><tr><th class="mono">estimated_loss</th><th>Outcome</th><th>Reasoning cited</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">4,200</td><td><b>APPROVE</b> · 0.95</td><td>within 45,000 cover, above 500 deductible, settles at 3,700</td></tr>
+        <tr><td class="mono">90,000</td><td><b>MANUAL_REVIEW</b> · 0.95</td><td>exceeds the 45,000 policy ceiling</td></tr>
+        <tr><td class="mono">300</td><td><b>REJECT</b> · 0.95</td><td>below the deductible — nothing payable</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note" style="margin-top:.6rem">
+    Same claim, same policy, one field changed. Each recommendation names the real policy number,
+    ceiling, deductible and computed settlement. Every
+    <span class="mono">RECOMMENDATION_GENERATED</span> event records the engine that answered
+    — <span class="mono">gemini-3.5-flash via vertex-ai</span> — so model output is
+    distinguishable from the deterministic fallback used when no credential is configured.
+  </p>
+
+  <h2>Stack</h2>
+  <div class="card" style="padding:.35rem 1rem 1rem; overflow-x:auto">
+    <table>
+      <thead><tr><th>Layer</th><th>Technology</th><th class="mono">Source</th></tr></thead>
+      <tbody>
+        <tr><td>Reasoning</td><td>Gemini 3.5 Flash via Vertex AI, Google GenAI SDK</td><td class="mono">pkg/shared/gemini</td></tr>
+        <tr><td>Service</td><td>Go 1.26 · Candi framework · Echo REST</td><td class="mono">apps/api/services/core</td></tr>
+        <tr><td>Persistence</td><td>PostgreSQL 16 · GORM · Goose migrations</td><td class="mono">cmd/migration</td></tr>
+        <tr><td>Coordination</td><td>Redis 7</td><td class="mono">configs</td></tr>
+        <tr><td>Console</td><td>React 18 · Vite · Tailwind v4</td><td class="mono">apps/web</td></tr>
+        <tr><td>CI/CD</td><td>govulncheck · gosec · Cloud Run</td><td class="mono">.github/workflows</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="note" style="margin-top:2rem">
+    <span class="pill">editable</span>
+    Click any diagram to unlock it as an Excalidraw canvas — drag, restyle, then export a PNG for the submission.
+  </p>
+
+</div>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.15.0/dist/mermaid.esm.min.mjs";
+  const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+  const paint = document.createElement("canvas").getContext("2d");
+  function toRgba(color){ paint.clearRect(0,0,1,1); paint.fillStyle="#000"; paint.fillStyle=color; paint.fillRect(0,0,1,1); return paint.getImageData(0,0,1,1).data; }
+  function compositeRgba(f,b){ const fa=f[3]/255, ba=b[3]/255, a=fa+ba*(1-fa); if(a===0) return [0,0,0,0];
+    return [(f[0]*fa+b[0]*ba*(1-fa))/a,(f[1]*fa+b[1]*ba*(1-fa))/a,(f[2]*fa+b[2]*ba*(1-fa))/a,a*255]; }
+  function pageIsDark(){
+    const root=document.documentElement;
+    const rb=toRgba(getComputedStyle(root).backgroundColor);
+    const bb=document.body?toRgba(getComputedStyle(document.body).backgroundColor):[0,0,0,0];
+    const [r,g,b,a]=compositeRgba(bb,rb);
+    if(a>0) return (0.2126*r+0.7152*g+0.0722*b)/255 < 0.5;
+    return darkQuery.matches;
+  }
+  const diagrams=[...document.querySelectorAll(".mermaid")].map(el=>({el,src:el.textContent}));
+  let applied, rendering=false, queued=false;
+  function queueRender(){ queued=true; if(rendering) return; void render(); }
+  async function render(){
+    rendering=true;
+    try{
+      while(queued){
+        queued=false;
+        const theme=pageIsDark()?"dark":"default";
+        if(theme===applied) continue;
+        mermaid.initialize({startOnLoad:false,theme,securityLevel:"strict"});
+        for(const {el,src} of diagrams){ el.removeAttribute("data-processed"); el.textContent=src; }
+        try{ await mermaid.run({nodes:diagrams.map(d=>d.el)}); }
+        catch(e){ console.error("Mermaid render failed:",e); return; }
+        applied=theme;
+      }
+    } finally { rendering=false; if(queued) queueRender(); }
+  }
+  if(document.readyState==="complete") queueRender();
+  else window.addEventListener("load",queueRender,{once:true});
+  darkQuery.addEventListener("change",queueRender);
+</script>
+</body>
+</html>
