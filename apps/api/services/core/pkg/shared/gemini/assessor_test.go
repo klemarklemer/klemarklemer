@@ -166,3 +166,27 @@ func TestNew_GivenNoCredential_FallsBackToDeterministicEngine(t *testing.T) {
 		t.Errorf("engine = %q, want %q", engine, SourceDeterministic)
 	}
 }
+
+func TestVertexConfigured_GivenEnvCombinations_RequiresBothFlagAndProject(t *testing.T) {
+	cases := []struct {
+		name, useVertex, project string
+		want                     bool
+	}{
+		{"unset", "", "", false},
+		{"flag true but no project", "true", "", false},
+		{"flag and project", "true", "klemarklemer-demo", true},
+		{"numeric flag and project", "1", "klemarklemer-demo", true},
+		{"flag false with project", "false", "klemarklemer-demo", false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("GOOGLE_GENAI_USE_VERTEXAI", tc.useVertex)
+			t.Setenv("GOOGLE_CLOUD_PROJECT", tc.project)
+
+			if got := vertexConfigured(); got != tc.want {
+				t.Errorf("vertexConfigured() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
