@@ -42,11 +42,16 @@ export function RecommendationPanel({
                 <li key={index}>{reason}</li>
               ))}
             </ul>
-            <div className="text-xs text-zinc-500">
-              Confidence:{' '}
-              <span className="font-mono font-semibold text-zinc-800">
-                {claim.recommendation.confidence * 100}%
-              </span>
+            <div className="flex items-center justify-between text-xs">
+              <div className="text-zinc-500">
+                Confidence:{' '}
+                <span className="font-mono font-semibold text-zinc-800">
+                  {claim.recommendation.confidence * 100}%
+                </span>
+              </div>
+              <div className="text-zinc-500 flex items-center gap-1">
+                <span className="font-mono text-[10px] uppercase">Powered by Gemini</span>
+              </div>
             </div>
           </div>
 

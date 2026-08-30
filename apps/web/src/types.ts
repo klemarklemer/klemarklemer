@@ -1,4 +1,14 @@
-export type Stage = 'Intake' | 'Assignment' | 'Assessment' | 'Decision' | 'Closed';
+export type Stage = 'Intake' | 'Assignment' | 'Survey' | 'Assessment' | 'Decision' | 'Closed';
+
+export interface PolicySummary {
+  policyNumber: string;
+  policyHolder: string;
+  vehicle: string;
+  coverage: string;
+  maxCoverage: number;
+  deductible: number;
+  status: string;
+}
 
 export interface PolicySummary {
   policyNumber: string;
@@ -52,6 +62,15 @@ export interface SlaClock {
   atRisk: boolean;
 }
 
+export interface SurveyInfo {
+  required: boolean;
+  status?: string;
+  surveyorId?: number;
+  surveyorName?: string;
+  completedAt?: string;
+  reportUrl?: string;
+}
+
 export interface Claim {
   id: string;
   policyId: string;
@@ -61,6 +80,7 @@ export interface Claim {
   documents: DocumentItem[];
   policy?: PolicySummary;
   assignment: Assignment | null;
+  survey?: SurveyInfo | null;
   recommendation: Recommendation | null;
   fraudSignal?: string;
   decision: 'APPROVE' | 'REJECT' | null;
