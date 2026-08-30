@@ -28,6 +28,7 @@ type ResponseClaim struct {
 	IncidentDescription  string                                  `json:"incident_description"`
 	EstimatedLoss        float64                                 `json:"estimated_loss"`
 	ApprovedAmount       float64                                 `json:"approved_amount"`
+	FraudSignal          *string                                 `json:"fraud_signal,omitempty"`
 	CurrentOfficerID     *int                                    `json:"current_officer_id,omitempty"`
 	CurrentOfficer       *shareddomain.ClaimsOfficer             `json:"current_officer,omitempty"`
 	ClaimSLADueAt        *string                                 `json:"claim_sla_due_at,omitempty"`
@@ -55,6 +56,7 @@ func (r *ResponseClaim) Serialize(source *shareddomain.Claim) {
 	r.IncidentDescription = source.IncidentDescription
 	r.EstimatedLoss = source.EstimatedLoss
 	r.ApprovedAmount = source.ApprovedAmount
+	r.FraudSignal = source.FraudSignal
 	r.CurrentOfficerID = source.CurrentOfficerID
 	r.CurrentOfficer = source.CurrentOfficer
 	r.Status = source.Status

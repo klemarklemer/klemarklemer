@@ -15,6 +15,7 @@ func (uc *claimUsecaseImpl) ResetDemo(ctx context.Context) (res domain.ResponseC
 	trace, ctx := tracer.StartTraceWithContext(ctx, "ClaimUsecase:ResetDemo")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
+	var claim shareddomain.Claim
 	err = uc.repoSQL.WithTransaction(ctx, func(txCtx context.Context) error {
 		// Reset officers workload
 		officers, _ := uc.repoSQL.OfficerRepo().FetchAll(txCtx, &officerdomain.FilterOfficer{})
@@ -29,14 +30,15 @@ func (uc *claimUsecaseImpl) ResetDemo(ctx context.Context) (res domain.ResponseC
 			_ = uc.repoSQL.OfficerRepo().Save(txCtx, &off)
 		}
 
-		// Delete existing documents, events, assignments, recommendations for claim 1
-		_ = uc.repoSQL.ClaimRepo().Delete(txCtx, &domain.FilterClaim{ID: func() *int { id := 1; return &id }()})
+		// Delete existing demo Claims (and cascade children) before re-seeding
+		_ = uc.repoSQL.ClaimRepo().Delete(txCtx, &domain.FilterClaim{ClaimNumber: "CLM-2026-0042"})
+		_ = uc.repoSQL.ClaimRepo().Delete(txCtx, &domain.FilterClaim{ClaimNumber: "CLM-2026-0043"})
 
 		claimSLADue := time.Now().Add(4 * time.Hour)
 		stageSLADue := time.Now().Add(25 * time.Minute)
 
-		claim := shareddomain.Claim{
-			ID:                   1,
+		// ---- Claim 1: Normal MOTOR (incomplete, missing police report) ----
+		claim = shareddomain.Claim{
 			ClaimNumber:          "CLM-2026-0042",
 			PolicyID:             1,
 			Stage:                shareddomain.StageDocumentVerification,
@@ -60,7 +62,7 @@ func (uc *claimUsecaseImpl) ResetDemo(ctx context.Context) (res domain.ResponseC
 		}
 
 		doc := shareddomain.ClaimDocument{
-			ClaimID:       1,
+			ClaimID:       claim.ID,
 			DocumentType:  "DAMAGE_PHOTO",
 			FileName:      "damage_front_bumper_km42.jpg",
 			FileURL:       "https://storage.googleapis.com/klemarklemer-claims-docs/claims/CLM-2026-0042/damage_front_bumper_km42.jpg",
@@ -73,7 +75,7 @@ func (uc *claimUsecaseImpl) ResetDemo(ctx context.Context) (res domain.ResponseC
 		}
 
 		event1 := shareddomain.ClaimEvent{
-			ClaimID:   1,
+			ClaimID:   claim.ID,
 			ActorName: "Supervisor",
 			ActorType: shareddomain.ActorAgent,
 			Action:    "CLAIM_INTAKE_INITIALIZED",
@@ -84,7 +86,7 @@ func (uc *claimUsecaseImpl) ResetDemo(ctx context.Context) (res domain.ResponseC
 		_ = uc.repoSQL.ClaimRepo().AddEvent(txCtx, &event1)
 
 		event2 := shareddomain.ClaimEvent{
-			ClaimID:       1,
+			ClaimID:       claim.ID,
 			ActorName:     "IntakeAgent",
 			ActorType:     shareddomain.ActorAgent,
 			Action:        "DOCUMENT_VERIFICATION_COMPLETED",
@@ -93,12 +95,94 @@ func (uc *claimUsecaseImpl) ResetDemo(ctx context.Context) (res domain.ResponseC
 			Payload:       `{"missing_documents": ["POLICE_REPORT"], "document_completeness": "INCOMPLETE"}`,
 			CreatedAt:     time.Now().Add(-14 * time.Minute),
 		}
-		return uc.repoSQL.ClaimRepo().AddEvent(txCtx, &event2)
+		if err := uc.repoSQL.ClaimRepo().AddEvent(txCtx, &event2); err != nil {
+			return err
+		}
+
+		// ---- Claim 2: Fraud-flagged MOTOR (policy holder mismatch, mandatory review) ----
+		fraudSignal := "Policy holder name on claim (J. Tan) differs from policy (Sarah Jenkins); duplicate claim pattern detected; vehicle plate B 1234 KLR not registered to claimant"
+		fraudStageSLADue := time.Now().Add(10 * time.Minute) // at risk
+		fraudClaim := shareddomain.Claim{
+			ClaimNumber:          "CLM-2026-0043",
+			PolicyID:             1,
+			Stage:                shareddomain.StageDecision,
+			DocumentCompleteness: shareddomain.CompletenessComplete,
+			SurveyRequired:       false,
+			ClaimType:            "MOTOR",
+			Severity:             "HIGH",
+			IncidentDescription:  "Alleged theft of vehicle from residential driveway.",
+			EstimatedLoss:        45000.00,
+			ApprovedAmount:       0,
+			CurrentOfficerID:     nil,
+			FraudSignal:          &fraudSignal,
+			ClaimSLADueAt:        &claimSLADue,
+			StageSLADueAt:        &fraudStageSLADue,
+			Status:               "OPEN",
+			CreatedAt:            time.Now().Add(-45 * time.Minute),
+			UpdatedAt:            time.Now(),
+		}
+
+		if err := uc.repoSQL.ClaimRepo().Save(txCtx, &fraudClaim); err != nil {
+			return err
+		}
+
+		// Inconsistent claim form document
+		doc2 := shareddomain.ClaimDocument{
+			ClaimID:       fraudClaim.ID,
+			DocumentType:  "CLAIM_FORM",
+			FileName:      "claim_form_theft_report.pdf",
+			FileURL:       "https://storage.googleapis.com/klemarklemer-claims-docs/claims/CLM-2026-0043/claim_form_theft_report.pdf",
+			Status:        "VERIFIED",
+			ExtractedData: `{"claimant_name": "J. Tan", "claimant_id": "S1234567", "vehicle_plate": "B 1234 KLR", "incident_type": "THEFT", "reported_date": "2026-08-28"}`,
+			UploadedAt:    time.Now().Add(-40 * time.Minute),
+		}
+		if err := uc.repoSQL.ClaimRepo().AddDocument(txCtx, &doc2); err != nil {
+			return err
+		}
+
+		// Police report for fraud claim
+		doc3 := shareddomain.ClaimDocument{
+			ClaimID:       fraudClaim.ID,
+			DocumentType:  "POLICE_REPORT",
+			FileName:      "police_report_theft.pdf",
+			FileURL:       "https://storage.googleapis.com/klemarklemer-claims-docs/claims/CLM-2026-0043/police_report_theft.pdf",
+			Status:        "VERIFIED",
+			ExtractedData: `{"report_id": "PR-2026-9999", "officer": "Insp. A. Kumar", "incident_date": "2026-08-28 02:00", "location": "123 Jalan Melati", "status": "OPEN_INVESTIGATION"}`,
+			UploadedAt:    time.Now().Add(-35 * time.Minute),
+		}
+		if err := uc.repoSQL.ClaimRepo().AddDocument(txCtx, &doc3); err != nil {
+			return err
+		}
+
+		// Mandatory human review recommendation (not auto-approve)
+		rec := shareddomain.AssessmentRecommendation{
+			ClaimID:     fraudClaim.ID,
+			Outcome:     shareddomain.OutcomeManualReview,
+			Confidence:  0.87,
+			Reasons:     "Claimant name (J. Tan) does not match policy holder (Sarah Jenkins). Vehicle plate B 1234 KLR registered to policy holder, not claimant. Prior theft claim on same vehicle 6 months ago (CLM-2025-1102). High estimated loss ($45,000) at policy maximum. Fraud signals require investigation before any decision.",
+			GeneratedAt: time.Now(),
+		}
+		if err := uc.repoSQL.ClaimRepo().SaveRecommendation(txCtx, &rec); err != nil {
+			return err
+		}
+
+		fraudEvent := shareddomain.ClaimEvent{
+			ClaimID:       fraudClaim.ID,
+			ActorName:     "AssessmentAgent",
+			ActorType:     shareddomain.ActorAgent,
+			Action:        "FRAUD_SIGNAL_DETECTED",
+			PreviousStage: shareddomain.StageAssessment,
+			NewStage:      shareddomain.StageDecision,
+			Payload:       `{"fraud_signal": "Policy holder mismatch; duplicate vehicle claim history", "recommendation": "MANUAL_REVIEW", "confidence": 0.87}`,
+			CreatedAt:     time.Now().Add(-5 * time.Minute),
+		}
+		return uc.repoSQL.ClaimRepo().AddEvent(txCtx, &fraudEvent)
 	})
 
 	if err != nil {
 		return res, err
 	}
 
-	return uc.GetDetailClaim(ctx, 1)
+	// Return the normal claim (CLM-2026-0042) as the seeded workspace
+	return uc.GetDetailClaim(ctx, claim.ID)
 }

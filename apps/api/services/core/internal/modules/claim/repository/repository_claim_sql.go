@@ -50,7 +50,7 @@ func (r *claimRepoSQL) FetchAll(ctx context.Context, filter *domain.FilterClaim)
 		Column: clause.Column{Name: filter.OrderBy},
 		Desc:   strings.ToUpper(filter.Sort) == "DESC",
 	})
-	if filter.Limit > 0 || !filter.ShowAll {
+	if filter.Limit > 0 {
 		db = db.Limit(filter.Limit).Offset(filter.CalculateOffset())
 	}
 	err = db.Preload("Policy").Preload("CurrentOfficer").Preload("Documents").Preload("Events", func(db *gorm.DB) *gorm.DB {
