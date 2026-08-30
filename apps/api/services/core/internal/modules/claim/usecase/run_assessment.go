@@ -13,17 +13,10 @@ import (
 	"github.com/golangid/candi/tracer"
 )
 
-// decisionStageSLA is how long the human decision gate has to bind a
-// recommendation before the claim breaches its stage SLA.
 const decisionStageSLA = 10 * time.Minute
 
-// RunAssessment is Loop 3. It asks the Assessment Agent to weigh the policy's
-// coverage against the estimated loss and the documents on file, records the
-// recommendation, and hands the claim to the human decision gate.
-//
-// The recommendation is advisory. Nothing here settles or closes a claim - that
-// is SubmitHumanApproval's job - so an APPROVE from this loop is a proposal a
-// claims officer still has to bind.
+// RunAssessment is Loop 3. The recommendation is advisory: only
+// SubmitHumanApproval settles or closes a claim.
 func (uc *claimUsecaseImpl) RunAssessment(ctx context.Context, claimID int) (res domain.ResponseClaim, err error) {
 	trace, ctx := tracer.StartTraceWithContext(ctx, "ClaimUsecase:RunAssessment")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
@@ -89,10 +82,8 @@ func (uc *claimUsecaseImpl) RunAssessment(ctx context.Context, claimID int) (res
 	return uc.GetDetailClaim(ctx, claimID)
 }
 
-// buildAssessmentInput flattens the claim record into the evidence the agent is
-// allowed to reason over. A claim with no policy attached still produces a valid
-// input; the assessor is responsible for treating that as unestablished coverage
-// rather than assuming a default.
+// A claim with no policy still produces a valid input; the assessor treats that
+// as unestablished coverage rather than assuming a default.
 func buildAssessmentInput(claim shareddomain.Claim) gemini.AssessmentInput {
 	in := gemini.AssessmentInput{
 		ClaimNumber:         claim.ClaimNumber,
