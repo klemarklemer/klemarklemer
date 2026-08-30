@@ -86,8 +86,53 @@ func (uc *claimUsecaseImpl) SubmitHumanApproval(ctx context.Context, claimID int
 			}
 			return uc.repoSQL.ClaimRepo().AddEvent(txCtx, &event2)
 		})
+	} else if data.Action == "REJECT_FRAUD" {
+		// Fraud override: close claim as REJECTED
+		claim.ApprovedAmount = 0
+		claim.Stage = shareddomain.StageClosed
+		claim.Status = "CLOSED"
+
+		err = uc.repoSQL.WithTransaction(ctx, func(txCtx context.Context) error {
+			if err := uc.repoSQL.ClaimRepo().Save(txCtx, &claim); err != nil {
+				return err
+			}
+
+			if claim.CurrentOfficerID != nil {
+				offID := *claim.CurrentOfficerID
+				offFilter := officerdomain.FilterOfficer{ID: &offID}
+				if off, err := uc.repoSQL.OfficerRepo().Find(txCtx, &offFilter); err == nil && off.CurrentWorkload > 0 {
+					off.CurrentWorkload--
+					_ = uc.repoSQL.OfficerRepo().Save(txCtx, &off)
+				}
+			}
+
+			event1 := shareddomain.ClaimEvent{
+				ClaimID:       claimID,
+				ActorName:     officerName,
+				ActorType:     shareddomain.ActorOfficer,
+				Action:        "HUMAN_APPROVAL_RECORDED",
+				PreviousStage: shareddomain.StageDecision,
+				NewStage:      shareddomain.StageClosed,
+				Payload: fmt.Sprintf(
+					`{"action":"REJECT_FRAUD","officer_name":"%s","notes":"%s","approved_amount":0}`,
+					officerName, data.Notes,
+				),
+			}
+			if err := uc.repoSQL.ClaimRepo().AddEvent(txCtx, &event1); err != nil {
+				return err
+			}
+
+			event2 := shareddomain.ClaimEvent{
+				ClaimID:   claimID,
+				ActorName: "Supervisor",
+				ActorType: shareddomain.ActorAgent,
+				Action:    "DECISION_ISSUED",
+				Payload:   `{"binding_outcome":"REJECT","settlement_amount":0,"status":"CLOSED","generated_report":"fraud_investigation_report_CLM-2026-0043.pdf"}`,
+			}
+			return uc.repoSQL.ClaimRepo().AddEvent(txCtx, &event2)
+		})
 	} else {
-		// Rejection / Override
+		// Rejection / Override (normal REJECT sends back to Assessment)
 		claim.Stage = shareddomain.StageAssessment
 
 		err = uc.repoSQL.WithTransaction(ctx, func(txCtx context.Context) error {
