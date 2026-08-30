@@ -270,10 +270,11 @@ func (deterministicAssessor) Assess(_ context.Context, in AssessmentInput) (Asse
 			fmt.Sprintf("Estimated loss of %.2f does not exceed the %.2f deductible on policy %s, so no settlement is payable.",
 				in.EstimatedLoss, in.DeductibleAmount, in.PolicyNumber)), nil
 
-	case !hasRequiredDocuments(in.DocumentTypes):
+	case len(missingDocuments(in.DocumentTypes)) > 0:
 		return result(OutcomeManualReview, 0.60,
-			fmt.Sprintf("Claim %s is within the %.2f limit on policy %s and would settle at %.2f, but the evidence on file (%s) lacks a police report or damage photo. Substantiation is too thin to approve.",
-				in.ClaimNumber, in.MaxCoverageAmount, in.PolicyNumber, payable, documentList(in.DocumentTypes))), nil
+			fmt.Sprintf("Claim %s is within the %.2f limit on policy %s and would settle at %.2f, but %s is missing from the evidence on file (%s). Substantiation is too thin to approve.",
+				in.ClaimNumber, in.MaxCoverageAmount, in.PolicyNumber, payable,
+				strings.Join(missingDocuments(in.DocumentTypes), " and "), documentList(in.DocumentTypes))), nil
 
 	default:
 		return result(OutcomeApprove, 0.88,
@@ -296,17 +297,21 @@ func settlement(in AssessmentInput) float64 {
 	return math.Max(0, in.EstimatedLoss-in.DeductibleAmount)
 }
 
-func hasRequiredDocuments(docs []string) bool {
-	var police, photo bool
+// Returns the required document types actually absent, so the recommendation can
+// name them instead of listing every requirement whether or not it is met.
+func missingDocuments(docs []string) []string {
+	present := make(map[string]bool, len(docs))
 	for _, d := range docs {
-		switch strings.ToUpper(strings.TrimSpace(d)) {
-		case "POLICE_REPORT":
-			police = true
-		case "DAMAGE_PHOTO":
-			photo = true
+		present[strings.ToUpper(strings.TrimSpace(d))] = true
+	}
+
+	var missing []string
+	for _, required := range []string{"POLICE_REPORT", "DAMAGE_PHOTO"} {
+		if !present[required] {
+			missing = append(missing, required)
 		}
 	}
-	return police && photo
+	return missing
 }
 
 func documentList(docs []string) string {

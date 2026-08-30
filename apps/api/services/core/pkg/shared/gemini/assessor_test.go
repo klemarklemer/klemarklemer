@@ -68,7 +68,7 @@ func TestDeterministicAssessor_GivenVaryingClaims_ReturnsOutcomeGroundedInInput(
 			name:          "thin evidence goes to a human rather than approving",
 			mutate:        func(in *AssessmentInput) { in.DocumentTypes = []string{"DAMAGE_PHOTO"} },
 			wantOutcome:   OutcomeManualReview,
-			wantInReasons: "police report",
+			wantInReasons: "POLICE_REPORT is missing",
 		},
 		{
 			name:          "no policy attached means coverage is unestablished",
@@ -188,5 +188,26 @@ func TestVertexConfigured_GivenEnvCombinations_RequiresBothFlagAndProject(t *tes
 				t.Errorf("vertexConfigured() = %v, want %v", got, tc.want)
 			}
 		})
+	}
+}
+
+func TestMissingDocuments_GivenPartialEvidence_NamesOnlyWhatIsAbsent(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		docs []string
+		want string
+	}{
+		{"only damage photo", []string{"DAMAGE_PHOTO"}, "POLICE_REPORT"},
+		{"only police report", []string{"POLICE_REPORT"}, "DAMAGE_PHOTO"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := missingDocuments(tc.docs)
+			if len(got) != 1 || got[0] != tc.want {
+				t.Errorf("missingDocuments(%v) = %v, want [%s]", tc.docs, got, tc.want)
+			}
+		})
+	}
+	if got := missingDocuments([]string{"POLICE_REPORT", "DAMAGE_PHOTO"}); len(got) != 0 {
+		t.Errorf("complete evidence reported missing: %v", got)
 	}
 }
