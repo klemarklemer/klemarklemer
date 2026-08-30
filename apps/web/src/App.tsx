@@ -17,6 +17,7 @@ import { TriageStrip } from './components/TriageStrip';
 import { ClaimIdentity } from './components/ClaimIdentity';
 import { DocumentCompleteness } from './components/DocumentCompleteness';
 import { AssignmentPanel } from './components/AssignmentPanel';
+import { SurveyPanel } from './components/SurveyPanel';
 import { RecommendationPanel } from './components/RecommendationPanel';
 import { TimelinePanel } from './components/TimelinePanel';
 import { LiveRegion } from './components/LiveRegion';
@@ -162,6 +163,7 @@ export default function App() {
               <ClaimIdentity claim={claim} />
               <DocumentCompleteness claim={claim} isComplete={isComplete} onUpload={handleUpload} busy={busy} />
               <AssignmentPanel claim={claim} />
+              {claim.survey?.required && <SurveyPanel claim={claim} />}
               <RecommendationPanel
                 claim={claim}
                 confirmApprove={confirmApprove}

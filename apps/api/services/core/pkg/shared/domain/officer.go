@@ -10,6 +10,8 @@ type ClaimsOfficer struct {
 	Name             string    `gorm:"column:name;type:varchar(255);not null" json:"name"`
 	Email            string    `gorm:"column:email;type:varchar(255);uniqueIndex;not null" json:"email"`
 	Role             string    `gorm:"column:role;type:varchar(64);not null;default:'Claims Officer'" json:"role"`
+	Specialty        *string   `gorm:"column:specialty;type:varchar(64)" json:"specialty,omitempty"`
+	Region           *string   `gorm:"column:region;type:varchar(64)" json:"region,omitempty"`
 	CurrentWorkload  int       `gorm:"column:current_workload;not null;default:0" json:"current_workload"`
 	MotorSkillRating float64   `gorm:"column:motor_skill_rating;type:decimal(3,2);not null;default:4.0" json:"motor_skill_rating"`
 	IsAvailable      bool      `gorm:"column:is_available;not null;default:true" json:"is_available"`

@@ -26,6 +26,12 @@ func (uc *claimUsecaseImpl) ResetDemo(ctx context.Context) (res domain.ResponseC
 				off.CurrentWorkload = 8
 			} else if off.ID == 3 {
 				off.CurrentWorkload = 2
+			} else if off.ID == 4 {
+				off.CurrentWorkload = 1
+			} else if off.ID == 5 {
+				off.CurrentWorkload = 0
+			} else if off.ID == 6 {
+				off.CurrentWorkload = 2
 			}
 			_ = uc.repoSQL.OfficerRepo().Save(txCtx, &off)
 		}
@@ -33,6 +39,7 @@ func (uc *claimUsecaseImpl) ResetDemo(ctx context.Context) (res domain.ResponseC
 		// Delete existing demo Claims (and cascade children) before re-seeding
 		_ = uc.repoSQL.ClaimRepo().Delete(txCtx, &domain.FilterClaim{ClaimNumber: "CLM-2026-0042"})
 		_ = uc.repoSQL.ClaimRepo().Delete(txCtx, &domain.FilterClaim{ClaimNumber: "CLM-2026-0043"})
+		_ = uc.repoSQL.ClaimRepo().Delete(txCtx, &domain.FilterClaim{ClaimNumber: "CLM-2026-0044"})
 
 		claimSLADue := time.Now().Add(4 * time.Hour)
 		stageSLADue := time.Now().Add(25 * time.Minute)

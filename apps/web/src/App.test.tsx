@@ -12,6 +12,7 @@ const resetClaim: BackendClaim = {
   policy_id: 1,
   stage: 'DOCUMENT_VERIFICATION',
   document_completeness: 'INCOMPLETE',
+  survey_required: false,
   claim_type: 'MOTOR',
   status: 'OPEN',
   documents: [
