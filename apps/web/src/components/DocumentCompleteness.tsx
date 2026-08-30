@@ -6,9 +6,10 @@ interface DocumentCompletenessProps {
   claim: Claim;
   isComplete: boolean;
   onUpload: () => void;
+  busy?: boolean;
 }
 
-export function DocumentCompleteness({ claim, isComplete, onUpload }: DocumentCompletenessProps) {
+export function DocumentCompleteness({ claim, isComplete, onUpload, busy }: DocumentCompletenessProps) {
   return (
     <Card>
       <div className="flex items-center justify-between mb-3">
@@ -45,7 +46,7 @@ export function DocumentCompleteness({ claim, isComplete, onUpload }: DocumentCo
         <div className="pt-2">
           <label
             htmlFor="police-upload-input"
-            className="inline-flex items-center gap-2 bg-teal-700 hover:bg-teal-800 focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:ring-offset-2 text-white px-4 py-2 rounded-md text-sm font-medium transition cursor-pointer"
+            className={`inline-flex items-center gap-2 bg-teal-700 hover:bg-teal-800 focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:ring-offset-2 text-white px-4 py-2 rounded-md text-sm font-medium transition cursor-pointer ${busy ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
             <FileArrowUp size={16} />
             Upload police report
@@ -55,6 +56,7 @@ export function DocumentCompleteness({ claim, isComplete, onUpload }: DocumentCo
             type="file"
             className="sr-only"
             onChange={onUpload}
+            disabled={busy}
             aria-label="Upload police report"
           />
           <p className="text-xs text-zinc-500 mt-1.5">

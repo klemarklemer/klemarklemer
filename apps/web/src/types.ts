@@ -1,10 +1,21 @@
 export type Stage = 'Intake' | 'Assignment' | 'Assessment' | 'Decision' | 'Closed';
 
+export interface PolicySummary {
+  policyNumber: string;
+  policyHolder: string;
+  vehicle: string;
+  coverage: string;
+  maxCoverage: number;
+  deductible: number;
+  status: string;
+}
+
 export interface DocumentItem {
   id: string;
   name: string;
   required: boolean;
   present: boolean;
+  extractedData?: string;
 }
 
 export interface AssignmentScore {
@@ -46,12 +57,16 @@ export interface Claim {
   policyId: string;
   line: string;
   stage: Stage;
+  documentCompleteness: string;
   documents: DocumentItem[];
+  policy?: PolicySummary;
   assignment: Assignment | null;
   recommendation: Recommendation | null;
+  fraudSignal?: string;
   decision: 'APPROVE' | 'REJECT' | null;
   closed: boolean;
   events: ClaimEvent[];
   notifications: string[];
   sla: SlaClock;
+  reportLabel?: string;
 }
