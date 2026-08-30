@@ -3,7 +3,7 @@
   "info": {
     "title": "Taskmaster Claims Operations Core API",
     "version": "1.0.0",
-    "description": "Production-grade Agentic Claims Operations & SLA Platform REST API.\nDesigned for the *All Things Agentic Hackathon — The Taskmaster* (August 2026).\nAdheres strictly to the insurance operations domain glossary in `CONTEXT.md`.\n"
+    "description": "Production-grade Agentic Claims Operations & SLA Platform REST API.\nDesigned for the *All Things Agentic Hackathon \u2014 The Taskmaster* (August 2026).\nAdheres strictly to the insurance operations domain glossary in `CONTEXT.md`.\n"
   },
   "servers": [
     {
@@ -159,6 +159,185 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ClaimDetailResponse"
+                },
+                "example": {
+                  "success": true,
+                  "code": 200,
+                  "message": "Document uploaded and intake evaluated",
+                  "data": {
+                    "id": 1,
+                    "claim_number": "CLM-2026-0042",
+                    "policy_id": 1,
+                    "policy": {
+                      "id": 1,
+                      "policy_number": "POL-MOTOR-2026-8819",
+                      "policy_holder_name": "Sarah Jenkins",
+                      "vehicle_plate": "B 1234 KLR",
+                      "vehicle_model": "Honda CR-V 2023",
+                      "coverage_type": "COMPREHENSIVE",
+                      "max_coverage_amount": 45000,
+                      "deductible_amount": 500,
+                      "effective_date": "2026-02-28T17:15:08.198646+07:00",
+                      "expiry_date": "2027-02-28T17:15:08.198646+07:00",
+                      "status": "ACTIVE",
+                      "created_at": "2026-08-30T17:15:08.198646+07:00",
+                      "updated_at": "2026-08-30T17:15:08.198646+07:00"
+                    },
+                    "stage": "DECISION",
+                    "document_completeness": "COMPLETE",
+                    "survey_required": false,
+                    "claim_type": "MOTOR",
+                    "severity": "MEDIUM",
+                    "incident_description": "Front bumper collision with road barrier during heavy rain on highway KM 42.",
+                    "estimated_loss": 4200,
+                    "approved_amount": 0,
+                    "current_officer_id": 1,
+                    "current_officer": {
+                      "id": 1,
+                      "name": "Alex Rivera",
+                      "email": "alex.rivera@klemarklemer.com",
+                      "role": "Claims Officer",
+                      "current_workload": 6,
+                      "motor_skill_rating": 4.8,
+                      "is_available": true,
+                      "created_at": "2026-08-30T17:15:08.198646+07:00",
+                      "updated_at": "2026-08-30T20:59:36.195569+07:00"
+                    },
+                    "claim_sla_due_at": "2026-08-31T00:59:36+07:00",
+                    "stage_sla_due_at": "2026-08-30T21:09:40+07:00",
+                    "status": "OPEN",
+                    "created_at": "2026-08-30T18:15:34+07:00",
+                    "updated_at": "2026-08-30T20:59:40+07:00",
+                    "documents": [
+                      {
+                        "id": 26,
+                        "claim_id": 1,
+                        "document_type": "DAMAGE_PHOTO",
+                        "file_name": "damage_front_bumper_km42.jpg",
+                        "file_url": "https://storage.googleapis.com/klemarklemer-claims-docs/claims/CLM-2026-0042/damage_front_bumper_km42.jpg",
+                        "status": "VERIFIED",
+                        "extracted_data": "{\"detected_damage\": \"Front bumper cracked, grille bent, headlight alignment shifted\", \"severity\": \"MEDIUM\"}",
+                        "uploaded_at": "2026-08-30T20:44:36.159935+07:00"
+                      },
+                      {
+                        "id": 27,
+                        "claim_id": 1,
+                        "document_type": "POLICE_REPORT",
+                        "file_name": "PR-2026-9912.pdf",
+                        "file_url": "https://storage.googleapis.com/klemarklemer-claims-docs/claims/CLM-2026-0042/PR-2026-9912.pdf",
+                        "status": "VERIFIED",
+                        "extracted_data": "{\"report_id\": \"PR-2026-9912\", \"officer\": \"Insp. H. Santoso\", \"incident_date\": \"2026-08-28 14:30\", \"location\": \"Highway KM 42\", \"severity\": \"MEDIUM\", \"liability\": \"SINGLE_VEHICLE_ACCIDENT\"}",
+                        "uploaded_at": "2026-08-30T20:59:36.183757+07:00"
+                      }
+                    ],
+                    "events": [
+                      {
+                        "id": 73,
+                        "claim_id": 1,
+                        "actor_name": "Supervisor",
+                        "actor_type": "AGENT",
+                        "action": "CLAIM_INTAKE_INITIALIZED",
+                        "previous_stage": "",
+                        "new_stage": "INTAKE",
+                        "payload": "{\"source\": \"Customer Submission Portal\", \"claim_number\": \"CLM-2026-0042\"}",
+                        "created_at": "2026-08-30T20:44:36.160955+07:00"
+                      },
+                      {
+                        "id": 74,
+                        "claim_id": 1,
+                        "actor_name": "IntakeAgent",
+                        "actor_type": "AGENT",
+                        "action": "DOCUMENT_VERIFICATION_COMPLETED",
+                        "previous_stage": "INTAKE",
+                        "new_stage": "DOCUMENT_VERIFICATION",
+                        "payload": "{\"missing_documents\": [\"POLICE_REPORT\"], \"document_completeness\": \"INCOMPLETE\"}",
+                        "created_at": "2026-08-30T20:45:36.161637+07:00"
+                      },
+                      {
+                        "id": 75,
+                        "claim_id": 1,
+                        "actor_name": "Claims Officer (Stand-in)",
+                        "actor_type": "OFFICER",
+                        "action": "DOCUMENT_UPLOADED",
+                        "previous_stage": "",
+                        "new_stage": "",
+                        "payload": "{\"document_type\":\"POLICE_REPORT\",\"file_name\":\"PR-2026-9912.pdf\"}",
+                        "created_at": "2026-08-30T20:59:36.185453+07:00"
+                      },
+                      {
+                        "id": 76,
+                        "claim_id": 1,
+                        "actor_name": "IntakeAgent",
+                        "actor_type": "AGENT",
+                        "action": "DOCUMENT_VERIFICATION_COMPLETED",
+                        "previous_stage": "DOCUMENT_VERIFICATION",
+                        "new_stage": "ASSIGNMENT",
+                        "payload": "{\"document_completeness\":\"COMPLETE\",\"verified_docs\":[\"POLICE_REPORT\",\"DAMAGE_PHOTO\"]}",
+                        "created_at": "2026-08-30T20:59:36.191261+07:00"
+                      },
+                      {
+                        "id": 77,
+                        "claim_id": 1,
+                        "actor_name": "IntakeAgent",
+                        "actor_type": "AGENT",
+                        "action": "CLAIM_CLASSIFIED",
+                        "previous_stage": "",
+                        "new_stage": "",
+                        "payload": "{\"claim_type\":\"MOTOR\",\"severity\":\"MEDIUM\",\"survey_required\":false}",
+                        "created_at": "2026-08-30T20:59:36.191808+07:00"
+                      },
+                      {
+                        "id": 78,
+                        "claim_id": 1,
+                        "actor_name": "AssignmentAgent",
+                        "actor_type": "AGENT",
+                        "action": "OFFICER_ASSIGNED",
+                        "previous_stage": "ASSIGNMENT",
+                        "new_stage": "ASSESSMENT",
+                        "payload": "{\"officer_name\":\"Alex Rivera\",\"officer_id\":1,\"workload_score\":2.50,\"skill_score\":4.80,\"total_score\":7.30}",
+                        "created_at": "2026-08-30T20:59:36.196124+07:00"
+                      },
+                      {
+                        "id": 79,
+                        "claim_id": 1,
+                        "actor_name": "AssessmentAgent",
+                        "actor_type": "AGENT",
+                        "action": "RECOMMENDATION_GENERATED",
+                        "previous_stage": "ASSESSMENT",
+                        "new_stage": "DECISION",
+                        "payload": "{\"confidence\":0.95,\"engine\":\"gemini-3.5-flash via vertex-ai\",\"outcome\":\"APPROVE\",\"reasons\":\"The policy POL-MOTOR-2026-8819 is ACTIVE and in force. The estimated loss of 4200.00 is well below the maximum coverage of 45000.00 and exceeds the deductible of 500.00, leading to a valid settlement of 3700.00. All necessary substantiating documents, including the DAMAGE_PHOTO and POLICE_REPORT, are present on file.\"}",
+                        "created_at": "2026-08-30T20:59:40.285347+07:00"
+                      }
+                    ],
+                    "assignment": {
+                      "id": 5,
+                      "claim_id": 1,
+                      "officer_id": 1,
+                      "officer": {
+                        "id": 1,
+                        "name": "Alex Rivera",
+                        "email": "alex.rivera@klemarklemer.com",
+                        "role": "Claims Officer",
+                        "current_workload": 6,
+                        "motor_skill_rating": 4.8,
+                        "is_available": true,
+                        "created_at": "2026-08-30T17:15:08.198646+07:00",
+                        "updated_at": "2026-08-30T20:59:36.195569+07:00"
+                      },
+                      "workload_score": 2.5,
+                      "skill_score": 4.8,
+                      "total_score": 7.3,
+                      "assigned_at": "2026-08-30T20:59:36.194598+07:00"
+                    },
+                    "recommendation": {
+                      "id": 10,
+                      "claim_id": 1,
+                      "outcome": "APPROVE",
+                      "confidence": 0.95,
+                      "reasons": "The policy POL-MOTOR-2026-8819 is ACTIVE and in force. The estimated loss of 4200.00 is well below the maximum coverage of 45000.00 and exceeds the deductible of 500.00, leading to a valid settlement of 3700.00. All necessary substantiating documents, including the DAMAGE_PHOTO and POLICE_REPORT, are present on file.",
+                      "generated_at": "2026-08-30T20:59:40.275421+07:00"
+                    }
+                  }
                 }
               }
             }
@@ -198,11 +377,190 @@
         },
         "responses": {
           "200": {
-            "description": "Document verified and intake evaluated.",
+            "description": "Document stored. Loops 1-3 then run in sequence, so the response already reflects intake, assignment and the Gemini assessment: stage is DECISION and current_officer and recommendation are populated.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ClaimDetailResponse"
+                },
+                "example": {
+                  "success": true,
+                  "code": 200,
+                  "message": "Document uploaded and intake evaluated",
+                  "data": {
+                    "id": 1,
+                    "claim_number": "CLM-2026-0042",
+                    "policy_id": 1,
+                    "policy": {
+                      "id": 1,
+                      "policy_number": "POL-MOTOR-2026-8819",
+                      "policy_holder_name": "Sarah Jenkins",
+                      "vehicle_plate": "B 1234 KLR",
+                      "vehicle_model": "Honda CR-V 2023",
+                      "coverage_type": "COMPREHENSIVE",
+                      "max_coverage_amount": 45000,
+                      "deductible_amount": 500,
+                      "effective_date": "2026-02-28T17:15:08.198646+07:00",
+                      "expiry_date": "2027-02-28T17:15:08.198646+07:00",
+                      "status": "ACTIVE",
+                      "created_at": "2026-08-30T17:15:08.198646+07:00",
+                      "updated_at": "2026-08-30T17:15:08.198646+07:00"
+                    },
+                    "stage": "DECISION",
+                    "document_completeness": "COMPLETE",
+                    "survey_required": false,
+                    "claim_type": "MOTOR",
+                    "severity": "MEDIUM",
+                    "incident_description": "Front bumper collision with road barrier during heavy rain on highway KM 42.",
+                    "estimated_loss": 4200,
+                    "approved_amount": 0,
+                    "current_officer_id": 1,
+                    "current_officer": {
+                      "id": 1,
+                      "name": "Alex Rivera",
+                      "email": "alex.rivera@klemarklemer.com",
+                      "role": "Claims Officer",
+                      "current_workload": 6,
+                      "motor_skill_rating": 4.8,
+                      "is_available": true,
+                      "created_at": "2026-08-30T17:15:08.198646+07:00",
+                      "updated_at": "2026-08-30T20:59:36.195569+07:00"
+                    },
+                    "claim_sla_due_at": "2026-08-31T00:59:36+07:00",
+                    "stage_sla_due_at": "2026-08-30T21:09:40+07:00",
+                    "status": "OPEN",
+                    "created_at": "2026-08-30T18:15:34+07:00",
+                    "updated_at": "2026-08-30T20:59:40+07:00",
+                    "documents": [
+                      {
+                        "id": 26,
+                        "claim_id": 1,
+                        "document_type": "DAMAGE_PHOTO",
+                        "file_name": "damage_front_bumper_km42.jpg",
+                        "file_url": "https://storage.googleapis.com/klemarklemer-claims-docs/claims/CLM-2026-0042/damage_front_bumper_km42.jpg",
+                        "status": "VERIFIED",
+                        "extracted_data": "{\"detected_damage\": \"Front bumper cracked, grille bent, headlight alignment shifted\", \"severity\": \"MEDIUM\"}",
+                        "uploaded_at": "2026-08-30T20:44:36.159935+07:00"
+                      },
+                      {
+                        "id": 27,
+                        "claim_id": 1,
+                        "document_type": "POLICE_REPORT",
+                        "file_name": "PR-2026-9912.pdf",
+                        "file_url": "https://storage.googleapis.com/klemarklemer-claims-docs/claims/CLM-2026-0042/PR-2026-9912.pdf",
+                        "status": "VERIFIED",
+                        "extracted_data": "{\"report_id\": \"PR-2026-9912\", \"officer\": \"Insp. H. Santoso\", \"incident_date\": \"2026-08-28 14:30\", \"location\": \"Highway KM 42\", \"severity\": \"MEDIUM\", \"liability\": \"SINGLE_VEHICLE_ACCIDENT\"}",
+                        "uploaded_at": "2026-08-30T20:59:36.183757+07:00"
+                      }
+                    ],
+                    "events": [
+                      {
+                        "id": 73,
+                        "claim_id": 1,
+                        "actor_name": "Supervisor",
+                        "actor_type": "AGENT",
+                        "action": "CLAIM_INTAKE_INITIALIZED",
+                        "previous_stage": "",
+                        "new_stage": "INTAKE",
+                        "payload": "{\"source\": \"Customer Submission Portal\", \"claim_number\": \"CLM-2026-0042\"}",
+                        "created_at": "2026-08-30T20:44:36.160955+07:00"
+                      },
+                      {
+                        "id": 74,
+                        "claim_id": 1,
+                        "actor_name": "IntakeAgent",
+                        "actor_type": "AGENT",
+                        "action": "DOCUMENT_VERIFICATION_COMPLETED",
+                        "previous_stage": "INTAKE",
+                        "new_stage": "DOCUMENT_VERIFICATION",
+                        "payload": "{\"missing_documents\": [\"POLICE_REPORT\"], \"document_completeness\": \"INCOMPLETE\"}",
+                        "created_at": "2026-08-30T20:45:36.161637+07:00"
+                      },
+                      {
+                        "id": 75,
+                        "claim_id": 1,
+                        "actor_name": "Claims Officer (Stand-in)",
+                        "actor_type": "OFFICER",
+                        "action": "DOCUMENT_UPLOADED",
+                        "previous_stage": "",
+                        "new_stage": "",
+                        "payload": "{\"document_type\":\"POLICE_REPORT\",\"file_name\":\"PR-2026-9912.pdf\"}",
+                        "created_at": "2026-08-30T20:59:36.185453+07:00"
+                      },
+                      {
+                        "id": 76,
+                        "claim_id": 1,
+                        "actor_name": "IntakeAgent",
+                        "actor_type": "AGENT",
+                        "action": "DOCUMENT_VERIFICATION_COMPLETED",
+                        "previous_stage": "DOCUMENT_VERIFICATION",
+                        "new_stage": "ASSIGNMENT",
+                        "payload": "{\"document_completeness\":\"COMPLETE\",\"verified_docs\":[\"POLICE_REPORT\",\"DAMAGE_PHOTO\"]}",
+                        "created_at": "2026-08-30T20:59:36.191261+07:00"
+                      },
+                      {
+                        "id": 77,
+                        "claim_id": 1,
+                        "actor_name": "IntakeAgent",
+                        "actor_type": "AGENT",
+                        "action": "CLAIM_CLASSIFIED",
+                        "previous_stage": "",
+                        "new_stage": "",
+                        "payload": "{\"claim_type\":\"MOTOR\",\"severity\":\"MEDIUM\",\"survey_required\":false}",
+                        "created_at": "2026-08-30T20:59:36.191808+07:00"
+                      },
+                      {
+                        "id": 78,
+                        "claim_id": 1,
+                        "actor_name": "AssignmentAgent",
+                        "actor_type": "AGENT",
+                        "action": "OFFICER_ASSIGNED",
+                        "previous_stage": "ASSIGNMENT",
+                        "new_stage": "ASSESSMENT",
+                        "payload": "{\"officer_name\":\"Alex Rivera\",\"officer_id\":1,\"workload_score\":2.50,\"skill_score\":4.80,\"total_score\":7.30}",
+                        "created_at": "2026-08-30T20:59:36.196124+07:00"
+                      },
+                      {
+                        "id": 79,
+                        "claim_id": 1,
+                        "actor_name": "AssessmentAgent",
+                        "actor_type": "AGENT",
+                        "action": "RECOMMENDATION_GENERATED",
+                        "previous_stage": "ASSESSMENT",
+                        "new_stage": "DECISION",
+                        "payload": "{\"confidence\":0.95,\"engine\":\"gemini-3.5-flash via vertex-ai\",\"outcome\":\"APPROVE\",\"reasons\":\"The policy POL-MOTOR-2026-8819 is ACTIVE and in force. The estimated loss of 4200.00 is well below the maximum coverage of 45000.00 and exceeds the deductible of 500.00, leading to a valid settlement of 3700.00. All necessary substantiating documents, including the DAMAGE_PHOTO and POLICE_REPORT, are present on file.\"}",
+                        "created_at": "2026-08-30T20:59:40.285347+07:00"
+                      }
+                    ],
+                    "assignment": {
+                      "id": 5,
+                      "claim_id": 1,
+                      "officer_id": 1,
+                      "officer": {
+                        "id": 1,
+                        "name": "Alex Rivera",
+                        "email": "alex.rivera@klemarklemer.com",
+                        "role": "Claims Officer",
+                        "current_workload": 6,
+                        "motor_skill_rating": 4.8,
+                        "is_available": true,
+                        "created_at": "2026-08-30T17:15:08.198646+07:00",
+                        "updated_at": "2026-08-30T20:59:36.195569+07:00"
+                      },
+                      "workload_score": 2.5,
+                      "skill_score": 4.8,
+                      "total_score": 7.3,
+                      "assigned_at": "2026-08-30T20:59:36.194598+07:00"
+                    },
+                    "recommendation": {
+                      "id": 10,
+                      "claim_id": 1,
+                      "outcome": "APPROVE",
+                      "confidence": 0.95,
+                      "reasons": "The policy POL-MOTOR-2026-8819 is ACTIVE and in force. The estimated loss of 4200.00 is well below the maximum coverage of 45000.00 and exceeds the deductible of 500.00, leading to a valid settlement of 3700.00. All necessary substantiating documents, including the DAMAGE_PHOTO and POLICE_REPORT, are present on file.",
+                      "generated_at": "2026-08-30T20:59:40.275421+07:00"
+                    }
+                  }
                 }
               }
             }
@@ -597,6 +955,14 @@
           },
           "recommendation": {
             "$ref": "#/components/schemas/AssessmentRecommendation"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/Policy",
+            "description": "Preloaded on claim detail. Present whenever policy_id resolves."
+          },
+          "current_officer": {
+            "$ref": "#/components/schemas/ClaimsOfficer",
+            "description": "Preloaded once Loop 2 has assigned the claim; null before that."
           }
         }
       },
@@ -651,7 +1017,9 @@
             "type": "string"
           },
           "payload": {
-            "type": "string"
+            "type": "string",
+            "description": "JSON string. For RECOMMENDATION_GENERATED it carries outcome, confidence, reasons and engine, where engine names the reasoning backend that answered (e.g. \"gemini-3.5-flash via vertex-ai\", or \"deterministic-rules\" when no model credential is configured).",
+            "example": "{\"confidence\":0.95,\"engine\":\"gemini-3.5-flash via vertex-ai\",\"outcome\":\"APPROVE\",\"reasons\":\"Policy POL-MOTOR-2026-8819 is ACTIVE...\"}"
           },
           "created_at": {
             "type": "string",
@@ -704,14 +1072,107 @@
             ]
           },
           "confidence": {
-            "type": "number"
+            "type": "number",
+            "description": "0.0-1.0."
           },
           "reasons": {
-            "type": "string"
+            "type": "string",
+            "description": "Justification citing the policy and loss figures the recommendation was grounded in."
           },
           "generated_at": {
             "type": "string",
             "format": "date-time"
+          }
+        },
+        "description": "Advisory only. A claims officer still binds the decision through POST /v1/claim/{id}/approval; an APPROVE here settles nothing."
+      },
+      "Policy": {
+        "type": "object",
+        "description": "The cover a claim is assessed against. Loop 3 reads max_coverage_amount, deductible_amount, status and expiry_date to reach its recommendation.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "policy_number": {
+            "type": "string",
+            "example": "POL-MOTOR-2026-8819"
+          },
+          "policy_holder_name": {
+            "type": "string",
+            "example": "Budi Hartono"
+          },
+          "vehicle_plate": {
+            "type": "string",
+            "example": "B 1234 XYZ"
+          },
+          "vehicle_model": {
+            "type": "string",
+            "example": "Toyota Avanza 2023"
+          },
+          "coverage_type": {
+            "type": "string",
+            "example": "COMPREHENSIVE"
+          },
+          "max_coverage_amount": {
+            "type": "number",
+            "format": "double",
+            "example": 45000.0
+          },
+          "deductible_amount": {
+            "type": "number",
+            "format": "double",
+            "example": 500.0
+          },
+          "effective_date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiry_date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "LAPSED",
+              "EXPIRED"
+            ],
+            "example": "ACTIVE"
+          }
+        }
+      },
+      "ClaimsOfficer": {
+        "type": "object",
+        "description": "A claims officer. Loop 2 scores every officer on workload and skill, then assigns the highest scorer.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Alex Rivera"
+          },
+          "email": {
+            "type": "string",
+            "example": "alex.rivera@klemarklemer.test"
+          },
+          "is_available": {
+            "type": "boolean",
+            "example": true
+          },
+          "current_workload": {
+            "type": "integer",
+            "description": "Open claims held. Incremented on assignment, decremented on closure.",
+            "example": 4
+          },
+          "motor_skill_rating": {
+            "type": "number",
+            "format": "double",
+            "description": "0-5.",
+            "example": 4.8
           }
         }
       }
