@@ -23,8 +23,11 @@ func (uc *claimUsecaseImpl) RunAssignment(ctx context.Context, claimID int) (res
 	}
 
 	officers, err := uc.repoSQL.OfficerRepo().FetchAll(ctx, &officerdomain.FilterOfficer{})
-	if err != nil || len(officers) == 0 {
-		return res, fmt.Errorf("no eligible claims officers found")
+	if err != nil {
+		return res, fmt.Errorf("load claims officers: %w", err)
+	}
+	if len(officers) == 0 {
+		return res, fmt.Errorf("no claims officers exist to assign claim %d", claimID)
 	}
 
 	var bestOfficer *shareddomain.Officer
