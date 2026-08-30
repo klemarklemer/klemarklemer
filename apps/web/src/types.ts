@@ -10,6 +10,16 @@ export interface PolicySummary {
   status: string;
 }
 
+export interface PolicySummary {
+  policyNumber: string;
+  policyHolder: string;
+  vehicle: string;
+  coverage: string;
+  maxCoverage: number;
+  deductible: number;
+  status: string;
+}
+
 export interface DocumentItem {
   id: string;
   name: string;
