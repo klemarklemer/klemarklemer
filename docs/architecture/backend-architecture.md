@@ -1,5 +1,9 @@
 # Backend Architecture & Technical Specification
 
+> **Visual architecture:** [`architecture.html`](architecture.html) renders the system
+> topology, the four loops, and the request lifecycle as diagrams. Open it directly in a
+> browser — it needs no server.
+
 ## 1. System Overview & Architecture (C4 Model)
 
 Taskmaster Claims Operations backend (`apps/api/services/core`) is an enterprise-grade Go service built on top of the **Candi Clean Architecture Framework**. It provides a unified orchestration layer for general-insurance claims lifecycle management, deterministic SLA tracking, autonomous multi-agent choreographies, and mandatory Human-in-the-Loop decision governance.
