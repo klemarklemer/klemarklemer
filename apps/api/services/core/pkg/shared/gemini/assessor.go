@@ -1,14 +1,8 @@
 // Package gemini holds the reasoning layer behind the Assessment Agent.
 //
-// The agent grounds every recommendation in the claim record it is given: the
-// policy's coverage ceiling, its deductible, its in-force window, the estimated
-// loss, and the documents on file. Nothing about the outcome is pre-decided.
-//
-// The package degrades on purpose. When no Gemini credential is configured the
-// constructor returns a deterministic assessor that applies the same underwriting
-// rules locally, so the service still boots, still reasons over real claim data,
-// and still reports which engine produced the answer. A demo or a CI run without
-// a key therefore behaves honestly instead of pretending to be a model.
+// Without a credential it degrades to deterministic underwriting rules rather
+// than failing, so a keyless CI run or fresh clone still reasons over real claim
+// data and reports which engine answered instead of imitating a model.
 package gemini
 
 import (
@@ -23,16 +17,13 @@ import (
 	"google.golang.org/genai"
 )
 
-// Recommendation outcomes. Mirrored from the shared claim domain so this package
-// stays free of a dependency on it and can be unit tested in isolation.
+// Mirrored from the shared claim domain to keep this package independently testable.
 const (
 	OutcomeApprove      = "APPROVE"
 	OutcomeReject       = "REJECT"
 	OutcomeManualReview = "MANUAL_REVIEW"
 )
 
-// Engine identifiers reported on every result so an auditor can tell which
-// reasoning path produced a recommendation.
 const (
 	SourceDeterministic = "deterministic-rules"
 	BackendVertexAI     = "vertex-ai"
@@ -40,18 +31,15 @@ const (
 )
 
 const (
-	// defaultModel is the Gemini model used when GEMINI_MODEL is unset.
 	defaultModel = "gemini-3.5-flash"
-	// requestTimeout bounds a single assessment call so one slow response cannot
-	// hold a claim transaction open.
+	// Bounds one call so a slow response cannot hold a claim transaction open.
 	requestTimeout = 25 * time.Second
-	// assessmentTemperature keeps recommendations reproducible for the same claim.
+	// Low, so the same claim yields a reproducible recommendation.
 	assessmentTemperature = 0.2
 )
 
-// AssessmentInput is the evidence an assessment reasons over. It is a flat value
-// deliberately: the assessor must not reach back into the database, so whatever
-// is not on this struct cannot influence the outcome.
+// AssessmentInput is flat by design: the assessor never reaches back into the
+// database, so anything absent here cannot influence the outcome.
 type AssessmentInput struct {
 	ClaimNumber         string
 	ClaimType           string
@@ -69,8 +57,7 @@ type AssessmentInput struct {
 	DocumentTypes []string
 }
 
-// AssessmentResult is a recommendation, never a decision. A human still binds it
-// through the decision gate.
+// AssessmentResult is a recommendation, never a decision.
 type AssessmentResult struct {
 	Outcome    string
 	Confidence float64
@@ -78,25 +65,14 @@ type AssessmentResult struct {
 	Source     string
 }
 
-// Assessor produces a grounded recommendation for one claim.
 type Assessor interface {
 	Assess(ctx context.Context, in AssessmentInput) (AssessmentResult, error)
 }
 
-// New returns a Gemini-backed assessor when the environment configures one, and
-// the deterministic assessor otherwise. It never returns a nil Assessor, so
-// callers need no nil branch: an unconfigured deployment degrades rather than fails.
-//
-// Two backends are supported, chosen by environment alone so the same binary runs
-// either way:
-//
-//	Vertex AI    GOOGLE_GENAI_USE_VERTEXAI=true, GOOGLE_CLOUD_PROJECT, and
-//	             GOOGLE_CLOUD_LOCATION, authenticating through application default
-//	             credentials. Calls appear in Google Cloud Console.
-//	Gemini API   GEMINI_API_KEY (or GOOGLE_API_KEY). Simplest for local work.
-//
-// The second return value names the engine actually selected, so startup logs and
-// the recorded claim event both say which one answered.
+// New selects a backend from the environment alone, so the same binary runs on
+// Vertex AI (GOOGLE_GENAI_USE_VERTEXAI + GOOGLE_CLOUD_PROJECT, via ADC), on the
+// Gemini API (GEMINI_API_KEY), or on deterministic rules. It never returns nil.
+// The second value names the engine selected.
 func New(ctx context.Context) (Assessor, string) {
 	useVertex := vertexConfigured()
 	apiKey := firstNonEmpty(os.Getenv("GEMINI_API_KEY"), os.Getenv("GOOGLE_API_KEY"))
@@ -105,8 +81,8 @@ func New(ctx context.Context) (Assessor, string) {
 		return deterministicAssessor{}, SourceDeterministic
 	}
 
-	// An empty config lets the SDK resolve Vertex settings from the environment
-	// itself; setting Backend here would override that and pin the Gemini API.
+	// Leaving Backend unset lets the SDK resolve Vertex from the environment;
+	// setting it here would pin the Gemini API.
 	cfg := &genai.ClientConfig{}
 	if !useVertex {
 		cfg.APIKey = apiKey
@@ -122,8 +98,7 @@ func New(ctx context.Context) (Assessor, string) {
 	return &geminiAssessor{client: client, model: model, backend: backendLabel(useVertex)}, model + " via " + backendLabel(useVertex)
 }
 
-// vertexConfigured reports whether the environment asks for Vertex AI. It mirrors
-// the SDK's own truthiness rule so this decision and the SDK's cannot disagree.
+// Mirrors the SDK's truthiness rule so the two cannot disagree.
 func vertexConfigured() bool {
 	switch strings.ToLower(strings.TrimSpace(os.Getenv("GOOGLE_GENAI_USE_VERTEXAI"))) {
 	case "1", "true":
@@ -204,8 +179,8 @@ func (a *geminiAssessor) Assess(ctx context.Context, in AssessmentInput) (Assess
 	}, nil
 }
 
-// responseSchema constrains the model to the exact shape the claim record needs,
-// so a malformed answer is rejected by the API rather than parsed defensively here.
+// Constrains the model so a malformed answer is rejected by the API rather than
+// parsed defensively here.
 func responseSchema() *genai.Schema {
 	return &genai.Schema{
 		Type: genai.TypeObject,
@@ -262,9 +237,8 @@ func buildPrompt(in AssessmentInput) string {
 	return b.String()
 }
 
-// deterministicAssessor applies the same underwriting rules without a model. It
-// exists so an unconfigured environment still reasons over the real claim rather
-// than emitting a canned answer.
+// Applies the same underwriting rules without a model, so an unconfigured
+// environment still reasons over the real claim.
 type deterministicAssessor struct{}
 
 func (deterministicAssessor) Assess(_ context.Context, in AssessmentInput) (AssessmentResult, error) {
@@ -318,8 +292,6 @@ func result(outcome string, confidence float64, reasons string) AssessmentResult
 	}
 }
 
-// settlement is what would actually be paid: the loss net of the deductible,
-// floored at zero.
 func settlement(in AssessmentInput) float64 {
 	return math.Max(0, in.EstimatedLoss-in.DeductibleAmount)
 }
@@ -344,8 +316,8 @@ func documentList(docs []string) string {
 	return strings.Join(docs, ", ")
 }
 
-// normalizeOutcome rejects anything the claim record cannot store, so a model that
-// invents an outcome fails loudly instead of writing an unknown value to the row.
+// Rejects anything the claim record cannot store, so an invented outcome is
+// refused rather than written to the row.
 func normalizeOutcome(raw string) (string, error) {
 	switch strings.ToUpper(strings.TrimSpace(raw)) {
 	case OutcomeApprove:
