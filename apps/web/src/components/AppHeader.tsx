@@ -10,6 +10,7 @@ interface AppHeaderProps {
   onToggleNotifications: () => void;
   onSeed: () => void;
   onReset: () => void;
+  busy?: boolean;
 }
 
 export function AppHeader({
@@ -17,7 +18,8 @@ export function AppHeader({
   notificationsOpen,
   onToggleNotifications,
   onSeed,
-  onReset
+  onReset,
+  busy
 }: AppHeaderProps) {
   return (
     <header className="bg-white border-b border-zinc-200 px-6 py-3 flex items-center justify-between shadow-xs">
@@ -60,14 +62,16 @@ export function AppHeader({
           {!claim ? (
             <button
               onClick={onSeed}
-              className="bg-teal-700 hover:bg-teal-800 focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:ring-offset-2 text-white px-4 py-2 rounded-md text-sm font-medium transition cursor-pointer"
+              disabled={busy}
+              className="bg-teal-700 hover:bg-teal-800 focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:ring-offset-2 text-white px-4 py-2 rounded-md text-sm font-medium transition cursor-pointer disabled:opacity-60"
             >
               Seed demo Claim
             </button>
           ) : (
             <button
               onClick={onReset}
-              className="border border-zinc-300 hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:ring-offset-2 px-3 py-2 rounded-md text-sm font-medium text-zinc-700 transition flex items-center gap-1.5 cursor-pointer"
+              disabled={busy}
+              className="border border-zinc-300 hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:ring-offset-2 px-3 py-2 rounded-md text-sm font-medium text-zinc-700 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
             >
               <ArrowClockwise size={16} />
               Reset

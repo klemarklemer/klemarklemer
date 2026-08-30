@@ -1,4 +1,4 @@
-import { Warning } from '@phosphor-icons/react/Warning';
+import { Warning } from '@phosphor-icons/react';
 import { Claim } from '../types';
 import { Card } from './Card';
 
@@ -9,6 +9,18 @@ interface ClaimIdentityProps {
 export function ClaimIdentity({ claim }: ClaimIdentityProps) {
   return (
     <Card>
+      {claim.fraudSignal && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <div className="flex items-start gap-2">
+            <Warning size={18} className="text-red-600 mt-0.5" weight="fill" />
+            <div className="flex-1">
+              <div className="text-xs font-semibold text-red-800 uppercase tracking-wide">Fraud signal detected</div>
+              <p className="text-xs text-red-700 mt-0.5">{claim.fraudSignal}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-100 pb-4 mb-4">
         <div>
           <div className="flex items-center gap-2">
