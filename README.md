@@ -174,6 +174,7 @@ make test          # both
 | | |
 |---|---|
 | [`docs/architecture/`](docs/architecture/) | C4 model, ERD, state machines, SLA formulas |
+| [`docs/architecture/architecture.html`](docs/architecture/architecture.html) | Visual system topology, the four loops, request lifecycle |
 | [`docs/security/`](docs/security/) | STRIDE threat model, RBAC, PII handling, SSDLC |
 | [`docs/api/`](docs/api/) | API catalog, OpenAPI 3.1, Postman collection |
 | [`docs/adr/`](docs/adr/) | Architectural decision records |

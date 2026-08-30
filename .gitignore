@@ -3,3 +3,6 @@ dist/
 .env
 .env.local
 !.env.sample
+
+# Lavish editor working directory; the exported page lives in docs/architecture/
+.lavish/
