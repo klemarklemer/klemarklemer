@@ -26,3 +26,12 @@ func (ClaimsOfficer) TableName() string {
 
 // Officer alias for ClaimsOfficer
 type Officer = ClaimsOfficer
+
+// RoleSurveyor is the one officer role that inspects damage rather than owning a
+// claim. Loop 2 scores claim ownership, so it must exclude these.
+const RoleSurveyor = "Surveyor"
+
+// IsSurveyor reports whether this officer inspects damage rather than owning claims.
+func (o ClaimsOfficer) IsSurveyor() bool {
+	return o.Role == RoleSurveyor
+}

@@ -102,9 +102,13 @@ separate; moving to Vertex AI used the funded one and put every call in Cloud Co
 
 ## Known limitations
 
-The claims officer console is a **design prototype**. It runs on local fixture data and
-makes no HTTP calls, so it does not yet exercise the backend described above. The
-architecture diagram marks that edge as unwired rather than implying a live client.
+The claims officer console is wired to the backend: it reads claims over HTTP and
+drives every loop from the browser, including the human decision that closes a claim.
+It is published at https://klemarklemer.github.io/klemarklemer/.
 
 Loop 1 still records some classification fields as constants rather than deriving them
-from the claim.
+from the claim - severity and the survey flag are written the same way for every claim.
+
+Survey handling is the least finished part. The schema, the three endpoints and the
+console panel all exist, but nothing in the intake path yet marks a claim as needing a
+survey, so the flow is reachable only through seeded data.

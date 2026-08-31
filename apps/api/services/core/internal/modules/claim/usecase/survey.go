@@ -35,7 +35,7 @@ func (uc *claimUsecaseImpl) AssignSurveyor(ctx context.Context, claimID int, sur
 	}
 
 	// Verify surveyor is actually a surveyor
-	if surveyor.Role != "Surveyor" {
+	if !surveyor.IsSurveyor() {
 		return res, fmt.Errorf("officer %s is not a surveyor", surveyor.Name)
 	}
 
