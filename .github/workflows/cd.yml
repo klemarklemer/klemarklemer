@@ -6,9 +6,6 @@ on:
       - 'production-api-core-v*'
       - 'staging-api-core-v*'
       - 'development-api-core-v*'
-      - 'production-web-v*'
-      - 'staging-web-v*'
-      - 'development-web-v*'
   workflow_dispatch:
 
 jobs:
@@ -33,18 +30,19 @@ jobs:
             echo "env=development" >> $GITHUB_OUTPUT
           fi
 
-      - name: Authenticate to Google Cloud
-        if: env.GCP_CREDENTIALS != ''
+      - name: Authenticate to Google Cloud via WIF
+        if: ${{ secrets.WIF_PROVIDER != '' }}
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
       - name: Set up Cloud SDK
-        if: env.GCP_CREDENTIALS != ''
+        if: ${{ secrets.WIF_PROVIDER != '' }}
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Build & Push API Image
-        if: env.GCP_CREDENTIALS != ''
+        if: ${{ secrets.WIF_PROVIDER != '' }}
         run: |
           gcloud auth configure-docker --quiet
           IMAGE_TAG="gcr.io/${{ secrets.GCP_PROJECT_ID }}/klemarklemer-api:${{ steps.meta.outputs.tag }}"
@@ -52,32 +50,12 @@ jobs:
           docker push $IMAGE_TAG
 
       - name: Deploy to Cloud Run
-        if: env.GCP_CREDENTIALS != ''
+        if: ${{ secrets.WIF_PROVIDER != '' }}
         run: |
           IMAGE_TAG="gcr.io/${{ secrets.GCP_PROJECT_ID }}/klemarklemer-api:${{ steps.meta.outputs.tag }}"
           gcloud run deploy klemarklemer-api-${{ steps.meta.outputs.env }} \
             --image $IMAGE_TAG \
             --platform managed \
             --region ${{ secrets.GCP_REGION || 'asia-southeast1' }} \
-            --allow-unauthenticated
-
-  deploy-web:
-    name: Deploy Frontend Web Console
-    if: startsWith(github.ref, 'refs/tags/production-web-') || startsWith(github.ref, 'refs/tags/staging-web-') || startsWith(github.ref, 'refs/tags/development-web-') || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'npm'
-          cache-dependency-path: apps/web/package-lock.json
-
-      - name: Install dependencies & build
-        working-directory: apps/web
-        run: |
-          npm ci
-          npm run build
+            --allow-unauthenticated \
+            --set-env-vars="CORS_ALLOW_ORIGINS=https://klemarklemer.github.io"
