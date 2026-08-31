@@ -31,7 +31,7 @@ const (
 )
 
 const (
-	defaultModel = "gemini-2.5-flash"
+	defaultModel = "gemini-3.5-flash"
 	// Bounds one call so a slow response cannot hold a claim transaction open.
 	requestTimeout = 25 * time.Second
 	// Low, so the same claim yields a reproducible recommendation.

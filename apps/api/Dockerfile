@@ -1,5 +1,5 @@
 # Stage 1
-FROM golang:1.25.0-alpine3.21 AS dependency_builder
+FROM golang:1.26-alpine AS dependency_builder
 
 WORKDIR /go/src
 ENV GO111MODULE=on
@@ -19,6 +19,7 @@ ARG SERVICE_NAME
 WORKDIR /usr/app
 
 COPY sdk sdk
+COPY globalshared globalshared
 COPY services/$SERVICE_NAME services/$SERVICE_NAME
 COPY go.mod .
 COPY go.sum .
@@ -36,6 +37,5 @@ ENV BUILD_NUMBER=$BUILD_NUMBER
 
 RUN mkdir -p /usr/app/services/$SERVICE_NAME
 COPY --from=service_builder /usr/app/bin bin
-COPY --from=service_builder /usr/app/services/$SERVICE_NAME/.env /usr/app/services/$SERVICE_NAME/.env
 
 ENTRYPOINT ["./bin"]
