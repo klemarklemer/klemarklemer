@@ -64,7 +64,7 @@ flowchart TB
     PG[("PostgreSQL 16<br /><small>claims · policies · officers<br />documents · events</small>")]
     RD[("Redis 7<br /><small>locks</small>")]
 
-    WEB -. "not yet wired" .-> REST
+    WEB -->|"HTTP · /v1"| REST
     REST --> UC
     UC --> ASSESS
     UC --> REPO
@@ -73,12 +73,11 @@ flowchart TB
     REPO --> PG
     UC --> RD
 
-    classDef gap stroke-dasharray: 5 5;
-    class WEB gap;
   </div>
   <p class="note" style="margin-top:.6rem">
-    The console is currently a design prototype with local fixture data — it makes no HTTP calls
-    (<span class="mono">apps/web/src/data/claim.ts</span>). Every other edge above is exercised end to end.
+    The console reads and drives the API over HTTP
+    (<span class="mono">apps/web/src/api/claims.ts</span>), including the human decision that closes a
+    claim. Every edge above is exercised end to end.
   </p>
 
   <h2>The four loops</h2>
