@@ -30,36 +30,9 @@ func (uc *claimUsecaseImpl) RunAssignment(ctx context.Context, claimID int) (res
 		return res, fmt.Errorf("no claims officers exist to assign claim %d", claimID)
 	}
 
-	var bestOfficer *shareddomain.Officer
-	var highestScore float64 = -1
-	var bestWorkloadScore, bestSkillScore float64
-
-	for i := range officers {
-		off := &officers[i]
-		if !off.IsAvailable {
-			continue
-		}
-
-		workloadCap := 10.0
-		workloadDiff := workloadCap - float64(off.CurrentWorkload)
-		if workloadDiff < 0 {
-			workloadDiff = 0
-		}
-		workloadScore := workloadDiff * 0.5
-		skillScore := (off.MotorSkillRating / 5.0) * 10.0 * 0.5
-		totalScore := workloadScore + skillScore
-
-		if totalScore > highestScore {
-			highestScore = totalScore
-			bestOfficer = off
-			bestWorkloadScore = workloadScore
-			bestSkillScore = skillScore
-		}
-	}
-
+	bestOfficer, bestWorkloadScore, bestSkillScore, highestScore := selectClaimOwner(officers)
 	if bestOfficer == nil {
-		bestOfficer = &officers[0]
-		highestScore = 5.0
+		return res, fmt.Errorf("no available claims officer to assign claim %d", claimID)
 	}
 
 	assignment := shareddomain.Assignment{
@@ -112,4 +85,36 @@ func (uc *claimUsecaseImpl) RunAssignment(ctx context.Context, claimID int) (res
 
 	// Autonomous progression: Trigger Assessment Agent
 	return uc.RunAssessment(ctx, claimID)
+}
+
+// selectClaimOwner picks the available claims officer with the best combined
+// workload and skill score. Surveyors sit in the same table but inspect damage
+// rather than owning claims, so they are never candidates - without this filter
+// they outscore every officer and Loop 2 hands motor claims to an inspector.
+// Returns a nil officer when nobody is eligible.
+func selectClaimOwner(officers []shareddomain.Officer) (best *shareddomain.Officer, workload, skill, total float64) {
+	total = -1
+	for i := range officers {
+		off := &officers[i]
+		if !off.IsAvailable || off.IsSurveyor() {
+			continue
+		}
+
+		workloadCap := 10.0
+		workloadDiff := workloadCap - float64(off.CurrentWorkload)
+		if workloadDiff < 0 {
+			workloadDiff = 0
+		}
+		workloadScore := workloadDiff * 0.5
+		skillScore := (off.MotorSkillRating / 5.0) * 10.0 * 0.5
+
+		if workloadScore+skillScore > total {
+			best, workload, skill, total = off, workloadScore, skillScore, workloadScore+skillScore
+		}
+	}
+
+	if best == nil {
+		return nil, 0, 0, 0
+	}
+	return best, workload, skill, total
 }
