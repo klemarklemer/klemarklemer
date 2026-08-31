@@ -13,6 +13,13 @@ jobs:
     name: Deploy Backend API to Cloud Run
     if: startsWith(github.ref, 'refs/tags/production-api-core-') || startsWith(github.ref, 'refs/tags/staging-api-core-') || startsWith(github.ref, 'refs/tags/development-api-core-') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      # `secrets` is not a valid context in a step-level `if`, which rejected the
+      # whole workflow before it ran. Surfacing the value here makes the guards legal.
+      WIF_PROVIDER: ${{ secrets.WIF_PROVIDER }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -31,18 +38,18 @@ jobs:
           fi
 
       - name: Authenticate to Google Cloud via WIF
-        if: ${{ secrets.WIF_PROVIDER != '' }}
+        if: env.WIF_PROVIDER != ''
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
           service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
       - name: Set up Cloud SDK
-        if: ${{ secrets.WIF_PROVIDER != '' }}
+        if: env.WIF_PROVIDER != ''
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Build & Push API Image
-        if: ${{ secrets.WIF_PROVIDER != '' }}
+        if: env.WIF_PROVIDER != ''
         run: |
           gcloud auth configure-docker --quiet
           IMAGE_TAG="gcr.io/${{ secrets.GCP_PROJECT_ID }}/klemarklemer-api:${{ steps.meta.outputs.tag }}"
@@ -50,12 +57,48 @@ jobs:
           docker push $IMAGE_TAG
 
       - name: Deploy to Cloud Run
-        if: ${{ secrets.WIF_PROVIDER != '' }}
+        if: env.WIF_PROVIDER != ''
+        env:
+          DEPLOY_ENV: ${{ steps.meta.outputs.env }}
+          IMAGE_TAG: gcr.io/${{ secrets.GCP_PROJECT_ID }}/klemarklemer-api:${{ steps.meta.outputs.tag }}
+          REGION: ${{ secrets.GCP_REGION }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          SQL_DB_DSN: ${{ secrets.SQL_DB_DSN }}
+          REDIS_DSN: ${{ secrets.REDIS_DSN }}
+          VPC_CONNECTOR: ${{ secrets.VPC_CONNECTOR }}
+          CLOUDSQL_INSTANCE: ${{ secrets.CLOUDSQL_INSTANCE }}
+          CORS_ALLOW_ORIGINS: https://klemarklemer.github.io
         run: |
-          IMAGE_TAG="gcr.io/${{ secrets.GCP_PROJECT_ID }}/klemarklemer-api:${{ steps.meta.outputs.tag }}"
-          gcloud run deploy klemarklemer-api-${{ steps.meta.outputs.env }} \
-            --image $IMAGE_TAG \
+          set -euo pipefail
+          REGION="${REGION:-asia-southeast1}"
+
+          # The service reads all configuration from the environment; the image
+          # deliberately ships without a .env file. A DSN carries '&' and '?', so
+          # the value list uses the ^@^ delimiter rather than the default comma.
+          VARS="ENVIRONMENT=${DEPLOY_ENV}"
+          VARS="${VARS}@DEBUG_MODE=false@LOAD_CONFIG_TIMEOUT=20s@MAX_GOROUTINES=10"
+          VARS="${VARS}@USE_REST=true@USE_GRPC=false@USE_GRAPHQL=false@USE_SHARED_LISTENER=false"
+          VARS="${VARS}@USE_KAFKA_CONSUMER=false@USE_CRON_SCHEDULER=false@USE_REDIS_SUBSCRIBER=false"
+          VARS="${VARS}@USE_TASK_QUEUE_WORKER=false@USE_POSTGRES_LISTENER_WORKER=false@USE_RABBITMQ_CONSUMER=false"
+          VARS="${VARS}@HTTP_PORT=8080"
+          VARS="${VARS}@CORS_ALLOW_ORIGINS=${CORS_ALLOW_ORIGINS}"
+          VARS="${VARS}@SQL_DB_READ_DSN=${SQL_DB_DSN}@SQL_DB_WRITE_DSN=${SQL_DB_DSN}"
+          VARS="${VARS}@REDIS_READ_DSN=${REDIS_DSN}@REDIS_WRITE_DSN=${REDIS_DSN}"
+          # Vertex AI backend, so assessment calls are visible in Cloud Console.
+          VARS="${VARS}@GOOGLE_GENAI_USE_VERTEXAI=true@GOOGLE_CLOUD_PROJECT=${GCP_PROJECT_ID}@GOOGLE_CLOUD_LOCATION=${REGION}"
+          VARS="${VARS}@GEMINI_MODEL=gemini-3.5-flash"
+
+          EXTRA=()
+          [ -n "${VPC_CONNECTOR}" ] && EXTRA+=(--vpc-connector "${VPC_CONNECTOR}" --vpc-egress private-ranges-only)
+          [ -n "${CLOUDSQL_INSTANCE}" ] && EXTRA+=(--add-cloudsql-instances "${CLOUDSQL_INSTANCE}")
+
+          gcloud run deploy "klemarklemer-api-${DEPLOY_ENV}" \
+            --image "${IMAGE_TAG}" \
             --platform managed \
-            --region ${{ secrets.GCP_REGION || 'asia-southeast1' }} \
+            --region "${REGION}" \
+            --port 8080 \
             --allow-unauthenticated \
-            --set-env-vars="CORS_ALLOW_ORIGINS=https://klemarklemer.github.io"
+            --set-env-vars "^@^${VARS}" \
+            "${EXTRA[@]}"
+
+          echo "Deployed: $(gcloud run services describe "klemarklemer-api-${DEPLOY_ENV}" --region "${REGION}" --format='value(status.url)')"
