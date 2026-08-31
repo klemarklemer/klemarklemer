@@ -6,7 +6,7 @@ export default defineConfig({
   base: '/klemarklemer/',
   plugins: [react(), tailwindcss()],
   define: {
-    'import.meta.env.VITE_API_BASE': JSON.stringify(process.env.VITE_API_BASE_URL || ''),
+    'import.meta.env.VITE_API_BASE': JSON.stringify(process.env.VITE_API_BASE_URL || '/api'),
   },
   server: {
     proxy: {
