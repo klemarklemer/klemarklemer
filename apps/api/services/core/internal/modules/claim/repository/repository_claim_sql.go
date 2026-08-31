@@ -53,7 +53,7 @@ func (r *claimRepoSQL) FetchAll(ctx context.Context, filter *domain.FilterClaim)
 	if filter.Limit > 0 {
 		db = db.Limit(filter.Limit).Offset(filter.CalculateOffset())
 	}
-	err = db.Preload("Policy").Preload("CurrentOfficer").Preload("Documents").Preload("Events", func(db *gorm.DB) *gorm.DB {
+	err = db.Preload("Policy").Preload("CurrentOfficer").Preload("Surveyor").Preload("Documents").Preload("Events", func(db *gorm.DB) *gorm.DB {
 		return db.Order("claim_events.created_at ASC")
 	}).Preload("Assignment").Preload("Assignment.Officer").Preload("Recommendation").Find(&data).Error
 	return
@@ -77,6 +77,7 @@ func (r *claimRepoSQL) Find(ctx context.Context, filter *domain.FilterClaim) (re
 	err = r.setFilterClaim(globalshared.SetSpanToGorm(ctx, r.readDB), filter).
 		Preload("Policy").
 		Preload("CurrentOfficer").
+		Preload("Surveyor").
 		Preload("Documents").
 		Preload("Events", func(db *gorm.DB) *gorm.DB {
 			return db.Order("claim_events.created_at ASC")

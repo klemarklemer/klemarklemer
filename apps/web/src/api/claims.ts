@@ -71,6 +71,7 @@ export interface BackendClaim {
   document_completeness: string;
   survey_required: boolean;
   surveyor_id?: number | null;
+  surveyor?: { id: number; name: string; role?: string; specialty?: string } | null;
   survey_status?: string | null;
   survey_sla_due_at?: string | null;
   survey_completed_at?: string | null;
@@ -196,6 +197,7 @@ export function toClaimView(b: BackendClaim): Claim {
         required: true,
         status: b.survey_status || undefined,
         surveyorId: b.surveyor_id || undefined,
+        surveyorName: b.surveyor?.name || undefined,
         completedAt: b.survey_completed_at || undefined,
         reportUrl: b.survey_report_url || undefined,
       }

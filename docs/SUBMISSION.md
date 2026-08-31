@@ -106,9 +106,9 @@ The claims officer console is wired to the backend: it reads claims over HTTP an
 drives every loop from the browser, including the human decision that closes a claim.
 It is published at https://klemarklemer.github.io/klemarklemer/.
 
-Loop 1 still records some classification fields as constants rather than deriving them
-from the claim - severity and the survey flag are written the same way for every claim.
+Every loop runs inside the request that triggers it. Nothing is queued or scheduled, so
+a claim advances only while a caller waits. The framework underneath supports task-queue
+and cron workers; none is switched on.
 
-Survey handling is the least finished part. The schema, the three endpoints and the
-console panel all exist, but nothing in the intake path yet marks a claim as needing a
-survey, so the flow is reachable only through seeded data.
+Assignment scoring is deterministic on purpose - workload and skill are arithmetic - so
+two of the four loops reason with a model and one does not.

@@ -74,11 +74,22 @@ type Assessor interface {
 // Gemini API (GEMINI_API_KEY), or on deterministic rules. It never returns nil.
 // The second value names the engine selected.
 func New(ctx context.Context) (Assessor, string) {
+	client, model, backend, ok := newModelClient(ctx)
+	if !ok {
+		return deterministicAssessor{}, SourceDeterministic
+	}
+	return &geminiAssessor{client: client, model: model, backend: backend}, model + " via " + backend
+}
+
+// newModelClient resolves a backend from the environment alone. ok is false when
+// no credential is configured, which is a supported state rather than an error:
+// both agents then fall back to their deterministic rules.
+func newModelClient(ctx context.Context) (client *genai.Client, model, backend string, ok bool) {
 	useVertex := vertexConfigured()
 	apiKey := firstNonEmpty(os.Getenv("GEMINI_API_KEY"), os.Getenv("GOOGLE_API_KEY"))
 
 	if !useVertex && apiKey == "" {
-		return deterministicAssessor{}, SourceDeterministic
+		return nil, "", "", false
 	}
 
 	// Leaving Backend unset lets the SDK resolve Vertex from the environment;
@@ -91,11 +102,10 @@ func New(ctx context.Context) (Assessor, string) {
 
 	client, err := genai.NewClient(ctx, cfg)
 	if err != nil {
-		return deterministicAssessor{}, SourceDeterministic
+		return nil, "", "", false
 	}
 
-	model := firstNonEmpty(os.Getenv("GEMINI_MODEL"), defaultModel)
-	return &geminiAssessor{client: client, model: model, backend: backendLabel(useVertex)}, model + " via " + backendLabel(useVertex)
+	return client, firstNonEmpty(os.Getenv("GEMINI_MODEL"), defaultModel), backendLabel(useVertex), true
 }
 
 // Mirrors the SDK's truthiness rule so the two cannot disagree.
