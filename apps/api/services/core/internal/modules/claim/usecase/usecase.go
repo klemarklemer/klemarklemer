@@ -37,21 +37,25 @@ type claimUsecaseImpl struct {
 	deps          dependency.Dependency
 	sharedUsecase common.Usecase
 	repoSQL       repository.RepoSQL
-	// assessor backs Loop 3. It is an interface so the assessment logic can be
-	// tested without a Gemini credential, and so an unconfigured deployment can
-	// fall back to deterministic underwriting rules.
-	assessor gemini.Assessor
+	// classifier backs Loop 1 and assessor backs Loop 3. Both are interfaces so
+	// the reasoning can be tested without a Gemini credential, and so an
+	// unconfigured deployment falls back to deterministic rules.
+	classifier gemini.Classifier
+	assessor   gemini.Assessor
 }
 
 // NewClaimUsecase constructor
 func NewClaimUsecase(deps dependency.Dependency) (ClaimUsecase, func(sharedUsecase common.Usecase)) {
-	assessor, engine := gemini.New(context.Background())
-	logger.LogGreen("claim usecase: assessment agent engine -> " + engine)
+	assessor, assessEngine := gemini.New(context.Background())
+	classifier, intakeEngine := gemini.NewClassifier(context.Background())
+	logger.LogGreen("claim usecase: intake agent engine -> " + intakeEngine)
+	logger.LogGreen("claim usecase: assessment agent engine -> " + assessEngine)
 
 	uc := &claimUsecaseImpl{
-		deps:     deps,
-		repoSQL:  repository.GetSharedRepoSQL(),
-		assessor: assessor,
+		deps:       deps,
+		repoSQL:    repository.GetSharedRepoSQL(),
+		classifier: classifier,
+		assessor:   assessor,
 	}
 	return uc, func(sharedUsecase common.Usecase) {
 		uc.sharedUsecase = sharedUsecase

@@ -13,8 +13,9 @@ that costs money stops at a human.
 
 | Loop | Agent | What it does |
 |---|---|---|
-| 1 · Intake | `IntakeAgent` | Verifies document completeness, classifies the claim |
+| 1 · Intake | `IntakeAgent` | Names the documents actually missing, then has Gemini judge severity and whether a surveyor must inspect |
 | 2 · Assignment | `AssignmentAgent` | Scores officers on workload and skill, assigns the best fit |
+| 2b · Survey | `AssignmentAgent` | When Loop 1 calls for an inspection, routes the claim to a free surveyor of the fitting specialty |
 | 3 · Assessment | `AssessmentAgent` | Weighs policy coverage against estimated loss and evidence, recommends an outcome |
 | 4 · Decision gate | Human | A claims officer binds the decision; only this closes a claim |
 
